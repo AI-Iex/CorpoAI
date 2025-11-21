@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "IA-AI_Assistant_Service"
+version = "1.0.0"
+description = "AI Chatbot"
+authors = [{name = "Alejandro Sastre", email = "alexsastre099@gmail.com"}]
+requires-python = ">=3.12"
+
+# ============================================================================
+# RUFF - Basic Linter
+# ============================================================================
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+# Only severe errors
+select = [
+    "E",   # Style errors
+    "F",   # Imports not definided, syntax errors
+]
+
+# Ignore this ones
+ignore = [
+    "E501",  # Long lines
+    "F401",  # Import not used
+]
+
+exclude = [".venv", "venv", "__pycache__", "alembic/versions"]
+
+# ============================================================================
+# BLACK - Formatter
+# ============================================================================
+[tool.black]
+line-length = 120
+target-version = ['py311']
+exclude = '(\.venv|venv|__pycache__|alembic/versions)'
+
+# ============================================================================
+# PYTEST - Tests
+# ============================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-v", "--tb=short"]
+
+# ============================================================================
+# COVERAGE - Code coverage
+# ============================================================================
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/tests/*", "*/venv/*", "*/alembic/versions/*"]
+
+[tool.coverage.report]
+precision = 2
+
+# ============================================================================
+# BANDIT - Security linter
+# ============================================================================
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv", "alembic/versions"]
+skips = ["B101"]  # Allow assert in tests
