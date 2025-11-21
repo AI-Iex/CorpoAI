@@ -114,3 +114,6 @@ Desktop.ini
 # Docs, until i have the 1.0 version
 *.md
 /docs
+*Dockerfile
+*.yml
+*ini
