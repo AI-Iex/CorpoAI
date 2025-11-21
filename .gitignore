@@ -112,5 +112,5 @@ ehthumbs.db
 Desktop.ini
 
 # Docs, until i have the 1.0 version
-.md
+*.md
 /docs
