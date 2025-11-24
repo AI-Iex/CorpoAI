@@ -1,0 +1,143 @@
+name: CI - Lint, Format & Security
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # Job 1: Linting with Ruff
+  lint:
+    name: 🔍Lint (Ruff)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-ruff-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-ruff-
+
+      - name: Install Ruff
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Run Ruff
+        run: |
+          echo "🔍Running Ruff linter..."
+          ruff check . --output-format=github
+
+
+  # Job 2: Code formatting with Black
+  format:
+    name: 🎨Format (Black)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-black-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-black-
+
+      - name: Install Black
+        run: |
+          python -m pip install --upgrade pip
+          pip install black
+
+      - name: Check Black formatting
+        run: |
+          echo "🎨Checking code formatting with Black..."
+          black --check --diff .
+
+
+  # Job 3: Security analysis with Bandit
+  security:
+    name: 🔒Security (Bandit)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-bandit-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-bandit-
+
+      - name: Install Bandit
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit[toml]
+
+      - name: Run Bandit
+        run: |
+          echo "🔒Running Bandit security analysis..."
+          bandit -r app -f json -o bandit-report.json || true
+          bandit -r app
+
+      - name: Upload Bandit Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-security-report
+          path: bandit-report.json
+          retention-days: 30
+
+
+  # Job 4: Final check - ensures all jobs passed
+  ci-status-check:
+    name: ✅ CI Status Check
+    runs-on: ubuntu-latest
+    needs: [lint, format, security]
+    if: always()
+    
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "📊 Checking CI results..."
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Format: ${{ needs.format.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.format.result }}" != "success" ] || \
+             [ "${{ needs.security.result }}" != "success" ]; then
+            echo "❌ CI failed! Check the logs above."
+            exit 1
+          fi
+          
+          echo "✅ All CI checks passed successfully!"
