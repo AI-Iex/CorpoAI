@@ -34,7 +34,12 @@ ollama
 # -----------------------------------------------------------------------------
 # Vector Database
 # -----------------------------------------------------------------------------
-chromadb-client
+
+# docker development, more lightweight
+#chromadb-client
+
+# local development
+chromadb
 
 # -----------------------------------------------------------------------------
 # HTTP Client

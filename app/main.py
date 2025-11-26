@@ -3,9 +3,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from CorpoAI.app.api.routes import health
+from app.api.routes.health import router as health_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging
+from app.db.chroma_client import close_chroma, init_chroma
 from app.db.session import close_db, init_db
 from app.middleware.exception_handler import exception_handler_middleware
 from app.middleware.logging import logging_middleware
@@ -32,19 +33,31 @@ async def lifespan(app: FastAPI):
         logger.error("Failed to initialize database")
         raise
 
+    # Initialize ChromaDB (optional, only if RAG enabled)
+    if settings.ENABLE_RAG:
+        try:
+            await init_chroma()
+            logger.info("ChromaDB initialized successfully")
+        except Exception:
+            logger.warning("ChromaDB initialization failed (non-critical)")
+
     yield
 
     # Shutdown
     logger.info("Shutting down CorpoAI - AI Assistant Service")
+    
+    if settings.ENABLE_RAG:
+        await close_chroma()
+    
     await close_db()
     logger.info("Application shutdown complete")
 
 
 # Create FastAPI app
 app = FastAPI(
-    title=settings.PROJECT_NAME,
+    title=settings.APP_NAME,
     description="AI Assistant Service with LangChain, LangGraph, and RAG capabilities",
-    version=settings.VERSION,
+    version=settings.APP_VERSION,
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
     openapi_url="/openapi.json" if settings.DEBUG else None,
@@ -76,14 +89,16 @@ async def exception_handler_middleware_wrapper(request, call_next):
 
 
 # Include routers
-app.include_router(health.router, tags=["Health"])
+app.include_router(health_router, tags=["Health"])
 
 
-# Root endpoint
+# Root endpoint - redirect to documentation
 @app.get("/", include_in_schema=False)
 async def root():
-    """Redirect root to API documentation."""
-    return RedirectResponse(url="/docs" if settings.DEBUG else "/api/v1/health")
+    """Redirect root to API documentation"""
+
+    return RedirectResponse(url="/docs")
+
 
 
 # API info endpoint
@@ -91,8 +106,8 @@ async def root():
 async def info():
     """Get API information."""
     return {
-        "name": settings.PROJECT_NAME,
-        "version": settings.VERSION,
+        "name": settings.APP_NAME,
+        "version": settings.APP_VERSION,
         "environment": settings.ENVIRONMENT,
         "debug": settings.DEBUG,
     }

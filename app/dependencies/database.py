@@ -1,15 +1,13 @@
-from collections.abc import AsyncGenerator
+from typing import Callable
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.session import get_db
-from app.db.unit_of_work import UnitOfWork
+from app.db.interfaces.unit_of_work import IUnitOfWork
+from app.db.unit_of_work import UnitOfWorkFactory, get_uow_factory
 
 
-async def get_uow(
-    session: AsyncSession = Depends(get_db),
-) -> AsyncGenerator[UnitOfWork, None]:
+def get_uow(
+    uow_factory: UnitOfWorkFactory = Depends(get_uow_factory),
+) -> IUnitOfWork:
     """
-    Dependency for getting Unit of Work instance.
+    Dependency for getting Unit of Work factory interface.
     """
-    async with UnitOfWork(session) as uow:
-        yield uow
+    return uow_factory()

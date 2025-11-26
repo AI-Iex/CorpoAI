@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Create async engine
 engine: AsyncEngine = create_async_engine(
     settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
-    echo=settings.DATABASE_ECHO,
+    echo=settings.DB_ECHO,
     pool_size=5,
     max_overflow=10,
     pool_pre_ping=True,
