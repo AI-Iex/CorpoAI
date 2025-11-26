@@ -47,3 +47,20 @@ class ChromaMode(str, Enum):
 
 
 # endregion CHROMA MODE ENUM
+
+# region LLM PROVIDER ENUM
+
+class LLMProvider(str, Enum):
+    """LLM provider types"""
+
+    OLLAMA = "ollama"
+    "Ollama local provider"
+
+    OPENAI = "openai"
+    "OpenAI API provider"
+
+    ANTHROPIC = "anthropic"
+    "Anthropic API provider"
+
+
+# endregion LLM PROVIDER ENUM

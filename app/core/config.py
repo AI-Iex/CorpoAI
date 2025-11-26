@@ -22,13 +22,14 @@ class Settings(BaseSettings):
     ENVIRONMENT: str
     DEBUG: bool
     LOG_LEVEL: str
+    
 
     # Server
     HOST: str
     PORT: int
     RELOAD: bool = True
 
-    # Database
+    # Postgree Database 
     DATABASE_URL: str
     DB_ECHO: bool = False
     DB_POOL_SIZE: int
@@ -48,18 +49,20 @@ class Settings(BaseSettings):
     CLIENT_ID: str
     CLIENT_SECRET: str
 
-    # Ollama
-    OLLAMA_BASE_URL: str
-    OLLAMA_MODEL: str
-    OLLAMA_TEMPERATURE: float
-    OLLAMA_MAX_TOKENS: int
-    OLLAMA_TIMEOUT: int
+    # LLM Configuration 
+    LLM_PROVIDER: str 
+    LLM_BASE_URL: str 
+    LLM_API_KEY: str 
+    LLM_MODEL: str 
+    LLM_TEMPERATURE: float 
+    LLM_MAX_TOKENS: int 
+    LLM_TIMEOUT: int 
 
     # ChromaDB
+    CHROMA_MODE: str 
+    CHROMA_HOST: str 
+    CHROMA_PORT: int 
     CHROMA_PERSIST_DIRECTORY: str
-    CHROMA_COLLECTION_NAME: str
-    CHROMA_HOST: str
-    CHROMA_PORT: int
 
     # Embeddings
     EMBEDDING_MODEL: str
