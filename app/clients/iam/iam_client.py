@@ -36,7 +36,7 @@ class IAMClient(IIAMClient):
         # Create IAM async client
         self._client = httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout)
 
-        logger.info(f"IAM client initialized with service version: {self._service_version}")
+        logger.debug(f"IAM client initialized with service version: {self._service_version}")
 
     @property
     def service_version(self) -> str:
