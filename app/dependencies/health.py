@@ -1,4 +1,5 @@
 from fastapi import Depends
+from app.core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.chroma_client import get_chroma_client
 from app.db.session import get_db
@@ -27,11 +28,19 @@ async def get_health_service(
     """
     chroma_client = get_chroma_client()
 
-    providers = [
-        DatabaseHealthProvider(db),
-        ChromaHealthProvider(chroma_client),
-        LLMHealthProvider(llm_client),
-        IAMHealthProvider(iam_client),
-    ]
+    providers =[]
+
+    # Always requeried providers
+    providers.append(DatabaseHealthProvider(db))
+    providers.append(LLMHealthProvider(llm_client))
+
+    # Chroma, if RAG is enabled
+    if settings.ENABLE_RAG:
+        providers.append(ChromaHealthProvider(chroma_client))
+
+    # IAM, if authentication is enabled
+    if settings.AUTH_ENABLED:
+        providers.append(IAMHealthProvider(iam_client))
+
 
     return HealthService(providers=providers)

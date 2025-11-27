@@ -30,12 +30,12 @@ class Settings(BaseSettings):
 
     # Postgree Database
     DATABASE_URL: str
-    DB_ECHO: bool = False
+    DB_ECHO: bool 
     DB_POOL_SIZE: int
     DB_MAX_OVERFLOW: int
 
     # Authentication
-    AUTH_ENABLED: bool = False
+    AUTH_ENABLED: bool 
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
