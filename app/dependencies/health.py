@@ -28,7 +28,7 @@ async def get_health_service(
     """
     chroma_client = get_chroma_client()
 
-    providers =[]
+    providers = []
 
     # Always requeried providers
     providers.append(DatabaseHealthProvider(db))
@@ -41,6 +41,5 @@ async def get_health_service(
     # IAM, if authentication is enabled
     if settings.AUTH_ENABLED:
         providers.append(IAMHealthProvider(iam_client))
-
 
     return HealthService(providers=providers)

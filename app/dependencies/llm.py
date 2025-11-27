@@ -2,6 +2,7 @@ import logging
 from fastapi import Depends
 from app.core.config import settings
 from app.core.enums import LLMProvider
+from app.core.exceptions import NotImplementedError, ValidationError
 from app.clients.interfaces.llm import ILLMClient
 from app.clients.llm.ollama_client import OllamaClient
 
@@ -33,7 +34,7 @@ def get_llm_client() -> ILLMClient:
 
     else:
         available = ", ".join([p.value for p in LLMProvider])
-        raise ValueError(f"Unsupported LLM provider: {provider_name}. " f"Available providers: {available}")
+        raise ValidationError(f"Unsupported LLM provider: {provider_name}. " f"Available providers: {available}")
 
 
 def get_llm(client: ILLMClient = Depends(get_llm_client)) -> ILLMClient:

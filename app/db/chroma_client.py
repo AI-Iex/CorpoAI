@@ -5,6 +5,7 @@ from chromadb import Client, Collection, HttpClient, PersistentClient
 from chromadb.config import Settings as ChromaSettings
 from app.core.enums import ChromaMode
 from app.core.config import settings
+from app.core.exceptions import ValidationError, VectorStoreError
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +56,14 @@ def get_chroma_client() -> Client:
                 logger.info("ChromaDB PersistentClient initialized successfully")
 
             else:
-                raise ValueError(f"Invalid CHROMA_MODE: {chroma_mode}")
+                raise ValidationError(f"Invalid CHROMA_MODE: {chroma_mode}")
 
+        except ValidationError:
+            raise
         except Exception as e:
             logger.error("Failed to initialize ChromaDB client")
             logger.debug(f"Err msg: {e}", exc_info=True)
-            raise RuntimeError("ChromaDB initialization failed") from e
+            raise VectorStoreError("ChromaDB initialization failed") from e
 
     return _chroma_client
 
