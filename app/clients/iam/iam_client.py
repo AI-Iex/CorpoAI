@@ -58,7 +58,8 @@ class IAMClient(IIAMClient):
             )
             data = response.json()
             if response.status_code == 200:
-                self._access_token = data.get("access_token")
+                token_data = data.get("token", {})
+                self._access_token = token_data.get("access_token")
                 logger.info("Authentication successful for IAM client")
                 return self._access_token
 
