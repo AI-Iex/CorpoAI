@@ -49,8 +49,7 @@ class UnitOfWork(IUnitOfWork):
             try:
                 await self._session.rollback()
             except Exception:
-                pass
-            raise DatabaseError("Failed to complete transaction") from e
+                raise DatabaseError("Failed to complete transaction") from e
         finally:
             await self._session.close()
             logger.debug("UnitOfWork: Session closed")
