@@ -68,3 +68,10 @@ class VectorStoreError(BaseAppException):
 
     def __init__(self, message: str = "Vector store error"):
         super().__init__(message, status_code=500)
+
+
+class NotImplementedError(BaseAppException):
+    """Exception raised when a feature is not implemented."""
+
+    def __init__(self, message: str = "Not implemented error"):
+        super().__init__(message, status_code=501)

@@ -28,38 +28,41 @@ class Settings(BaseSettings):
     PORT: int
     RELOAD: bool = True
 
-    # Database
+    # Postgree Database
     DATABASE_URL: str
-    DB_ECHO: bool = False
+    DB_ECHO: bool
     DB_POOL_SIZE: int
     DB_MAX_OVERFLOW: int
 
     # Authentication
-    AUTH_ENABLED: bool = False
+    AUTH_ENABLED: bool
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
 
     # IAM Service
     IAM_SERVICE_URL: str
+    IAM_SERVICE_VERSION: str
     IAM_SERVICE_TIMEOUT: int
 
     # IAM Service Authentication
-    CLIENT_ID: str
-    CLIENT_SECRET: str
+    IAM_CLIENT_ID: str
+    IAM_CLIENT_SECRET: str
 
-    # Ollama
-    OLLAMA_BASE_URL: str
-    OLLAMA_MODEL: str
-    OLLAMA_TEMPERATURE: float
-    OLLAMA_MAX_TOKENS: int
-    OLLAMA_TIMEOUT: int
+    # LLM Configuration
+    LLM_PROVIDER: str
+    LLM_BASE_URL: str
+    LLM_API_KEY: str
+    LLM_MODEL: str
+    LLM_TEMPERATURE: float
+    LLM_MAX_TOKENS: int
+    LLM_TIMEOUT: int
 
     # ChromaDB
-    CHROMA_PERSIST_DIRECTORY: str
-    CHROMA_COLLECTION_NAME: str
+    CHROMA_MODE: str
     CHROMA_HOST: str
     CHROMA_PORT: int
+    CHROMA_PERSIST_DIRECTORY: str
 
     # Embeddings
     EMBEDDING_MODEL: str
