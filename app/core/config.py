@@ -43,11 +43,12 @@ class Settings(BaseSettings):
 
     # IAM Service
     IAM_SERVICE_URL: str
+    IAM_SERVICE_VERSION: str
     IAM_SERVICE_TIMEOUT: int
 
     # IAM Service Authentication
-    CLIENT_ID: str
-    CLIENT_SECRET: str
+    IAM_CLIENT_ID: str
+    IAM_CLIENT_SECRET: str
 
     # LLM Configuration 
     LLM_PROVIDER: str 

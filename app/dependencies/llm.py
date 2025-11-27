@@ -2,22 +2,22 @@ import logging
 from fastapi import Depends
 from app.core.config import settings
 from app.core.enums import LLMProvider
-from app.services.interfaces.llm import ILLMProvider
-from app.services.llm.ollama_provider import OllamaProvider
-from app.core.exceptions import NotImplementedError, ValidationError
+from app.clients.interfaces.llm import ILLMClient
+from app.clients.llm.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
 
 
-def get_llm_provider() -> ILLMProvider:
+def get_llm_client() -> ILLMClient:
     """
-    Factory function to get the configured LLM provider.
+    Factory function to get the configured LLM client.
+    Returns the appropriate client based on LLM_PROVIDER setting.
     """
     provider_name = settings.LLM_PROVIDER.lower()
     
     if provider_name == LLMProvider.OLLAMA:
-        logger.debug(f"Creating Ollama provider with model: {settings.LLM_MODEL}")
-        return OllamaProvider(
+        logger.debug(f"Creating Ollama client with model: {settings.LLM_MODEL}")
+        return OllamaClient(
             base_url=settings.LLM_BASE_URL,
             model=settings.LLM_MODEL,
             temperature=settings.LLM_TEMPERATURE,
@@ -26,21 +26,23 @@ def get_llm_provider() -> ILLMProvider:
         )
     
     elif provider_name == LLMProvider.OPENAI:
-        
-        raise NotImplementedError("OpenAI provider is not yet implemented.")
+        raise NotImplementedError("OpenAI client is not yet implemented.")
     
     elif provider_name == LLMProvider.ANTHROPIC:
-        
-        raise NotImplementedError("Anthropic provider is not yet implemented.")
+        raise NotImplementedError("Anthropic client is not yet implemented.")
     
     else:
-        raise ValidationError(f"Unsupported LLM provider: {provider_name}.")
+        available = ", ".join([p.value for p in LLMProvider])
+        raise ValueError(
+            f"Unsupported LLM provider: {provider_name}. "
+            f"Available providers: {available}"
+        )
 
 
 def get_llm(
-    provider: ILLMProvider = Depends(get_llm_provider)
-) -> ILLMProvider:
+    client: ILLMClient = Depends(get_llm_client)
+) -> ILLMClient:
     """
-    Dependency to inject LLM provider into endpoints.
+    Dependency to inject LLM client into endpoints.
     """
-    return provider
+    return client

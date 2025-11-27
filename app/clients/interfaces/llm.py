@@ -2,8 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Any, AsyncIterator
 
 
-class ILLMProvider(ABC):
-    """Interface for Language Model providers."""
+class ILLMClient(ABC):
+    """
+    Interface for LLM clients (Ollama, OpenAI, Anthropic, etc.).
+    """
 
     @abstractmethod
     async def generate(
@@ -16,7 +18,7 @@ class ILLMProvider(ABC):
         """
         Generate a completion from the prompt.
         """
-        ...
+        pass
 
     @abstractmethod
     async def generate_stream(
@@ -29,17 +31,19 @@ class ILLMProvider(ABC):
         """
         Generate a completion with streaming.
         """
-        ...
+        pass
 
     @abstractmethod
     async def check_health(self) -> bool:
         """
-        Check if the LLM provider is available and healthy.
+        Check if LLM service is healthy and model is available.
         """
-        ...
+        pass
 
     @property
     @abstractmethod
     def model_name(self) -> str:
-        """Get the model name being used."""
-        ...
+        """
+        Get the model name being used.
+        """
+        pass

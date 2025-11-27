@@ -2,14 +2,14 @@ import logging
 from typing import Any, AsyncIterator
 import ollama
 from app.core.config import settings
-from app.services.interfaces.llm import ILLMProvider
+from app.clients.interfaces.llm import ILLMClient
 
 logger = logging.getLogger(__name__)
 
 
-class OllamaProvider(ILLMProvider):
+class OllamaClient(ILLMClient):
     """
-    Ollama LLM provider implementation.
+    Ollama LLM client implementation.
     """
 
     def __init__(
@@ -21,18 +21,18 @@ class OllamaProvider(ILLMProvider):
         timeout: int | None = None,
     ):
         """
-        Initialize Ollama provider.
+        Initialize Ollama client.
         """
         self._base_url = base_url or settings.LLM_BASE_URL
         self._model = model or settings.LLM_MODEL
-        self._default_temperature = temperature or settings.LLM_TEMPERATURE
-        self._default_max_tokens = max_tokens or settings.LLM_MAX_TOKENS
+        self._temperature = temperature or settings.LLM_TEMPERATURE
+        self._max_tokens = max_tokens or settings.LLM_MAX_TOKENS
         self._timeout = timeout or settings.LLM_TIMEOUT
-        
-        # Create Ollama client
+
+        # Create Ollama async client
         self._client = ollama.AsyncClient(host=self._base_url)
         
-        logger.info(f"Ollama provider initialized with model: {self._model}")
+        logger.info(f"Ollama client initialized with model: {self._model}")
 
     @property
     def model_name(self) -> str:
@@ -47,15 +47,15 @@ class OllamaProvider(ILLMProvider):
         **kwargs: Any
     ) -> str:
         """
-        Generate a completion from the prompt.
+        Generate a response.
         """
         try:
             response = await self._client.generate(
                 model=self._model,
                 prompt=prompt,
                 options={
-                    "temperature": temperature or self._default_temperature,
-                    "num_predict": max_tokens or self._default_max_tokens,
+                    "temperature": temperature or self._temperature,
+                    "num_predict": max_tokens or self._max_tokens,
                     **kwargs
                 },
                 stream=False
@@ -76,15 +76,15 @@ class OllamaProvider(ILLMProvider):
         **kwargs: Any
     ) -> AsyncIterator[str]:
         """
-        Generate a completion with streaming.
+        Generate a response with streaming.
         """
         try:
             stream = await self._client.generate(
                 model=self._model,
                 prompt=prompt,
                 options={
-                    "temperature": temperature or self._default_temperature,
-                    "num_predict": max_tokens or self._default_max_tokens,
+                    "temperature": temperature or self._temperature,
+                    "num_predict": max_tokens or self._max_tokens,
                     **kwargs
                 },
                 stream=True
@@ -107,7 +107,7 @@ class OllamaProvider(ILLMProvider):
             # List available models
             models_response = await self._client.list()
             
-            # Extract model names - models_response.models is a list
+            # Extract model names from response
             model_names = [model.model for model in models_response.models]
             
             if self._model in model_names:
