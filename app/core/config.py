@@ -129,6 +129,7 @@ class Settings(BaseSettings):
     LOG_FILE: str
     LOG_ROTATION: str
     LOG_RETENTION: str
+    LOG_PRIVACY_LEVEL: str 
 
     # Feature Flags
     ENABLE_RAG: bool

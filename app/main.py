@@ -5,15 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.api.routes.health import router as health_router
 from app.core.config import settings
-from app.core.logging_config import setup_logging
+from app.core.logging_config import setup_logging, configure_third_party_loggers
 from app.db.chroma_client import close_chroma, init_chroma
 from app.db.session import close_db, init_db
 from app.middleware.exception_handler import exception_handler_middleware
 from app.middleware.logging import logging_middleware
 
 # Setup logging
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = setup_logging()
+configure_third_party_loggers(level=logging.WARNING, attach_json_handler=False)
 
 
 @asynccontextmanager
@@ -22,15 +22,13 @@ async def lifespan(app: FastAPI):
     Application lifespan manager.
     """
     # Startup
-    logger.info("Starting CorpoAI - AI Assistant Service")
-    logger.debug(f"Environment: {settings.ENVIRONMENT}")
-    logger.debug(f"Debug mode: {settings.DEBUG}")
+    logger.info("Application startup", extra={"environment": settings.ENVIRONMENT, "debug": settings.DEBUG})
 
     try:
         await init_db()
         logger.info("Database initialized successfully")
-    except Exception:
-        logger.error("Failed to initialize database")
+    except Exception as e:
+        logger.error("Failed to initialize database", extra={"error": str(e)}, exc_info=True)
         raise
 
     # Initialize ChromaDB (optional, only if RAG enabled)
@@ -38,13 +36,15 @@ async def lifespan(app: FastAPI):
         try:
             await init_chroma()
             logger.info("ChromaDB initialized successfully")
-        except Exception:
-            logger.warning("ChromaDB initialization failed (non-critical)")
+        except Exception as e:
+            logger.warning("ChromaDB initialization failed (non-critical)", extra={"error": str(e)})
+
+    
 
     yield
 
     # Shutdown
-    logger.info("Shutting down CorpoAI - AI Assistant Service")
+    logger.info("Application shutdown")
 
     if settings.ENABLE_RAG:
         await close_chroma()
