@@ -8,6 +8,8 @@ from app.core.config import settings
 from app.core.logging_config import setup_logging, configure_third_party_loggers
 from app.db.chroma_client import close_chroma, init_chroma
 from app.db.session import close_db, init_db
+from app.clients.llm_client_manager import init_llm_client, close_llm_client
+from app.clients.iam_client_manager import init_iam_client, close_iam_client
 from app.middleware.exception_handler import exception_handler_middleware
 from app.middleware.logging import logging_middleware
 
@@ -20,15 +22,33 @@ configure_third_party_loggers(level=logging.WARNING, attach_json_handler=False)
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager.
+    Initializes all required clients and services during startup.
     """
     # Startup
-    logger.info("Application startup", extra={"environment": settings.ENVIRONMENT, "debug": settings.DEBUG})
+    logger.info(
+        "Application startup",
+        extra={
+            "environment": settings.ENVIRONMENT,
+            "log_level": settings.LOG_LEVEL,
+            "rag_enabled": settings.ENABLE_RAG,
+            "auth_enabled": settings.AUTH_ENABLED,
+        },
+    )
 
+    # Initialize Database
     try:
         await init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error("Failed to initialize database", extra={"error": str(e)}, exc_info=True)
+        raise
+
+    # Initialize LLM Client (always required)
+    try:
+        init_llm_client()
+        logger.info("LLM client initialized successfully")
+    except Exception as e:
+        logger.error("Failed to initialize LLM client", extra={"error": str(e)}, exc_info=True)
         raise
 
     # Initialize ChromaDB (optional, only if RAG enabled)
@@ -39,15 +59,30 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning("ChromaDB initialization failed (non-critical)", extra={"error": str(e)})
 
+    # Initialize IAM Client (optional, only if AUTH enabled)
+    if settings.AUTH_ENABLED:
+        try:
+            init_iam_client()
+            logger.info("IAM client initialized successfully")
+        except Exception as e:
+            logger.error("Failed to initialize IAM client", extra={"error": str(e)}, exc_info=True)
+            raise
+
     yield
 
     # Shutdown
     logger.info("Application shutdown")
 
+    # Cleanup in reverse order
+    if settings.AUTH_ENABLED:
+        close_iam_client()
+
     if settings.ENABLE_RAG:
         await close_chroma()
 
+    close_llm_client()
     await close_db()
+
     logger.info("Application shutdown complete")
 
 

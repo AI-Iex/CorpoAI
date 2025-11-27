@@ -32,7 +32,7 @@ class OllamaClient(ILLMClient):
         # Create Ollama async client
         self._client = ollama.AsyncClient(host=self._base_url)
 
-        logger.info(f"Ollama client initialized with model: {self._model}")
+        logger.debug(f"Ollama client initialized with model: {self._model}")
 
     @property
     def model_name(self) -> str:

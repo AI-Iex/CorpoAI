@@ -34,18 +34,18 @@ def get_chroma_client() -> Client:
             # Server
             if chroma_mode == ChromaMode.SERVER:
 
-                logger.info(f"Initializing ChromaDB HttpClient at {settings.CHROMA_HOST}:{settings.CHROMA_PORT}")
+                logger.debug(f"Initializing ChromaDB HttpClient at {settings.CHROMA_HOST}:{settings.CHROMA_PORT}")
                 _chroma_client = HttpClient(
                     host=settings.CHROMA_HOST,
                     port=settings.CHROMA_PORT,
                     settings=ChromaSettings(anonymized_telemetry=False),
                 )
-                logger.info("ChromaDB HttpClient initialized successfully")
+                logger.debug("ChromaDB HttpClient initialized successfully")
 
             # Local
             elif chroma_mode == ChromaMode.LOCAL:
 
-                logger.info(f"Initializing ChromaDB PersistentClient at {settings.CHROMA_PERSIST_DIRECTORY}")
+                logger.debug(f"Initializing ChromaDB PersistentClient at {settings.CHROMA_PERSIST_DIRECTORY}")
                 _chroma_client = PersistentClient(
                     path=settings.CHROMA_PERSIST_DIRECTORY,
                     settings=ChromaSettings(
@@ -53,7 +53,7 @@ def get_chroma_client() -> Client:
                         allow_reset=True,  # Only for development
                     ),
                 )
-                logger.info("ChromaDB PersistentClient initialized successfully")
+                logger.debug("ChromaDB PersistentClient initialized successfully")
 
             else:
                 raise ValidationError(f"Invalid CHROMA_MODE: {chroma_mode}")
@@ -106,7 +106,7 @@ async def init_chroma() -> None:
         collection_count = len(collections)
 
         chroma_mode = settings.CHROMA_MODE.lower()
-        logger.info(f"ChromaDB ({chroma_mode} mode) initialized successfully. Collections: {collection_count}")
+        logger.debug(f"ChromaDB ({chroma_mode} mode) initialized successfully. Collections: {collection_count}")
 
     except Exception as e:
         logger.error("Failed to initialize ChromaDB")
@@ -121,5 +121,5 @@ async def close_chroma() -> None:
     global _chroma_client
 
     if _chroma_client is not None:
-        logger.info("ChromaDB client cleanup")
+        logger.debug("ChromaDB client cleanup")
         _chroma_client = None

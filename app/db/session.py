@@ -70,7 +70,7 @@ async def init_db() -> None:
     """
     try:
         async with engine.begin():
-            logger.info("Database connection established successfully")
+            logger.debug("Database connection established successfully")
     except Exception as e:
         logger.error("Failed to connect to database")
         logger.debug(f"Err msg: {e}", exc_info=True)
@@ -82,4 +82,4 @@ async def close_db() -> None:
     Close database connection pool.
     """
     await engine.dispose()
-    logger.info("Database connection pool closed")
+    logger.debug("Database connection pool closed")
