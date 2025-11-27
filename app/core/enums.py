@@ -68,3 +68,21 @@ class LLMProvider(str, Enum):
 
 
 # endregion LLM PROVIDER ENUM
+
+# region LOG PRIVACY LEVEL ENUM
+
+
+class LogPrivacyLevel(str, Enum):
+    """Log privacy level types"""
+
+    NONE = "none"
+    "No masking applied"
+
+    STANDARD = "standard"
+    "Mask emails only"
+
+    STRICT = "strict"
+    "Mask emails and UUIDs"
+
+
+# endregion LOG PRIVACY LEVEL ENUM
