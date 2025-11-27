@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class LLMHealthProvider(IHealthCheckProvider):
     """
-    Generic LLM service health check provider.
+    LLM service health check provider.
     """
 
     def __init__(self, llm_client: ILLMClient):
