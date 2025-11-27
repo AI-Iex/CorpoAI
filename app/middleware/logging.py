@@ -113,8 +113,7 @@ async def logging_middleware(request: Request, call_next):
         try:
             reset_request_context(request_token, user_token, client_token)
         except Exception:
-            pass
-        raise
+            raise
 
     # Log successful request
     duration_ms = (time.perf_counter() - start_time) * 1000
@@ -130,6 +129,6 @@ async def logging_middleware(request: Request, call_next):
     try:
         reset_request_context(request_token, user_token, client_token)
     except Exception:
-        pass
+        raise
 
     return response
