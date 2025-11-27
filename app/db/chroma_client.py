@@ -15,31 +15,29 @@ _chroma_client: Optional[Client] = None
 def get_chroma_client() -> Client:
     """
     Get or create ChromaDB client singleton.
-    
+
     Supports two modes:
     - local: PersistentClient (embedded)
     - server: HttpClient (client-server)
-    
+
     Mode is controlled by CHROMA_MODE environment variable.
     """
     global _chroma_client
-    
+
     if _chroma_client is None:
         try:
 
             chroma_mode = settings.CHROMA_MODE.lower()
             logger.debug(f"ChromaDB mode: {chroma_mode}")
-            
+
             # Server
             if chroma_mode == ChromaMode.SERVER:
 
                 logger.info(f"Initializing ChromaDB HttpClient at {settings.CHROMA_HOST}:{settings.CHROMA_PORT}")
                 _chroma_client = HttpClient(
                     host=settings.CHROMA_HOST,
-                    port=settings.CHROMA_PORT, 
-                    settings=ChromaSettings(
-                        anonymized_telemetry=False
-                    )
+                    port=settings.CHROMA_PORT,
+                    settings=ChromaSettings(anonymized_telemetry=False),
                 )
                 logger.info("ChromaDB HttpClient initialized successfully")
 
@@ -58,12 +56,12 @@ def get_chroma_client() -> Client:
 
             else:
                 raise ValueError(f"Invalid CHROMA_MODE: {chroma_mode}")
-                
+
         except Exception as e:
-            logger.error(f"Failed to initialize ChromaDB client")
+            logger.error("Failed to initialize ChromaDB client")
             logger.debug(f"Err msg: {e}", exc_info=True)
             raise RuntimeError("ChromaDB initialization failed") from e
-    
+
     return _chroma_client
 
 
@@ -77,10 +75,10 @@ def get_or_create_collection(
     """
     if client is None:
         client = get_chroma_client()
-    
+
     if metadata is None:
         metadata = {"description": f"Collection: {collection_name}"}
-    
+
     try:
         collection = client.get_or_create_collection(
             name=collection_name,
@@ -88,7 +86,7 @@ def get_or_create_collection(
         )
         logger.debug(f"Collection '{collection_name}' ready")
         return collection
-        
+
     except Exception as e:
         logger.error(f"Failed to get/create collection '{collection_name}'")
         logger.debug(f"Err msg: {e}", exc_info=True)
@@ -103,10 +101,10 @@ async def init_chroma() -> None:
         client = get_chroma_client()
         collections = client.list_collections()
         collection_count = len(collections)
-        
+
         chroma_mode = settings.CHROMA_MODE.lower()
         logger.info(f"ChromaDB ({chroma_mode} mode) initialized successfully. Collections: {collection_count}")
-        
+
     except Exception as e:
         logger.error("Failed to initialize ChromaDB")
         logger.debug(f"Err msg: {e}", exc_info=True)
@@ -118,7 +116,7 @@ async def close_chroma() -> None:
     Close ChromaDB client.
     """
     global _chroma_client
-    
+
     if _chroma_client is not None:
         logger.info("ChromaDB client cleanup")
         _chroma_client = None

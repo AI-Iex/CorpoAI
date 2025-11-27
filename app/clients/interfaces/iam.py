@@ -42,4 +42,3 @@ class IIAMClient(ABC):
         Get the service version being used.
         """
         pass
-

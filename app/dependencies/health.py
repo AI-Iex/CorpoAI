@@ -26,12 +26,12 @@ async def get_health_service(
     Initializes all health check providers with their dependencies.
     """
     chroma_client = get_chroma_client()
-    
+
     providers = [
         DatabaseHealthProvider(db),
         ChromaHealthProvider(chroma_client),
         LLMHealthProvider(llm_client),
         IAMHealthProvider(iam_client),
     ]
-    
+
     return HealthService(providers=providers)

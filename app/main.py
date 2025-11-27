@@ -45,10 +45,10 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down CorpoAI - AI Assistant Service")
-    
+
     if settings.ENABLE_RAG:
         await close_chroma()
-    
+
     await close_db()
     logger.info("Application shutdown complete")
 
@@ -98,7 +98,6 @@ async def root():
     """Redirect root to API documentation"""
 
     return RedirectResponse(url="/docs")
-
 
 
 # API info endpoint

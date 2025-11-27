@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/health")
 
+
 @router.get(
     "",
     status_code=status.HTTP_200_OK,

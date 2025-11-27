@@ -9,11 +9,7 @@ class ILLMClient(ABC):
 
     @abstractmethod
     async def generate(
-        self,
-        prompt: str,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        **kwargs: Any
+        self, prompt: str, temperature: float | None = None, max_tokens: int | None = None, **kwargs: Any
     ) -> str:
         """
         Generate a completion from the prompt.
@@ -22,11 +18,7 @@ class ILLMClient(ABC):
 
     @abstractmethod
     async def generate_stream(
-        self,
-        prompt: str,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        **kwargs: Any
+        self, prompt: str, temperature: float | None = None, max_tokens: int | None = None, **kwargs: Any
     ) -> AsyncIterator[str]:
         """
         Generate a completion with streaming.

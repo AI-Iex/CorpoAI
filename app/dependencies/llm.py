@@ -14,7 +14,7 @@ def get_llm_client() -> ILLMClient:
     Returns the appropriate client based on LLM_PROVIDER setting.
     """
     provider_name = settings.LLM_PROVIDER.lower()
-    
+
     if provider_name == LLMProvider.OLLAMA:
         logger.debug(f"Creating Ollama client with model: {settings.LLM_MODEL}")
         return OllamaClient(
@@ -24,24 +24,19 @@ def get_llm_client() -> ILLMClient:
             max_tokens=settings.LLM_MAX_TOKENS,
             timeout=settings.LLM_TIMEOUT,
         )
-    
+
     elif provider_name == LLMProvider.OPENAI:
         raise NotImplementedError("OpenAI client is not yet implemented.")
-    
+
     elif provider_name == LLMProvider.ANTHROPIC:
         raise NotImplementedError("Anthropic client is not yet implemented.")
-    
+
     else:
         available = ", ".join([p.value for p in LLMProvider])
-        raise ValueError(
-            f"Unsupported LLM provider: {provider_name}. "
-            f"Available providers: {available}"
-        )
+        raise ValueError(f"Unsupported LLM provider: {provider_name}. " f"Available providers: {available}")
 
 
-def get_llm(
-    client: ILLMClient = Depends(get_llm_client)
-) -> ILLMClient:
+def get_llm(client: ILLMClient = Depends(get_llm_client)) -> ILLMClient:
     """
     Dependency to inject LLM client into endpoints.
     """

@@ -31,7 +31,7 @@ class OllamaClient(ILLMClient):
 
         # Create Ollama async client
         self._client = ollama.AsyncClient(host=self._base_url)
-        
+
         logger.info(f"Ollama client initialized with model: {self._model}")
 
     @property
@@ -40,11 +40,7 @@ class OllamaClient(ILLMClient):
         return self._model
 
     async def generate(
-        self,
-        prompt: str,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        **kwargs: Any
+        self, prompt: str, temperature: float | None = None, max_tokens: int | None = None, **kwargs: Any
     ) -> str:
         """
         Generate a response.
@@ -56,24 +52,20 @@ class OllamaClient(ILLMClient):
                 options={
                     "temperature": temperature or self._temperature,
                     "num_predict": max_tokens or self._max_tokens,
-                    **kwargs
+                    **kwargs,
                 },
-                stream=False
+                stream=False,
             )
-            
-            return response['response']
-            
+
+            return response["response"]
+
         except Exception as e:
             logger.error(f"Ollama generation failed: {type(e).__name__}")
             logger.debug(f"Err msg: {e}", exc_info=True)
             raise
 
     async def generate_stream(
-        self,
-        prompt: str,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        **kwargs: Any
+        self, prompt: str, temperature: float | None = None, max_tokens: int | None = None, **kwargs: Any
     ) -> AsyncIterator[str]:
         """
         Generate a response with streaming.
@@ -85,15 +77,15 @@ class OllamaClient(ILLMClient):
                 options={
                     "temperature": temperature or self._temperature,
                     "num_predict": max_tokens or self._max_tokens,
-                    **kwargs
+                    **kwargs,
                 },
-                stream=True
+                stream=True,
             )
-            
+
             async for chunk in stream:
-                if 'response' in chunk:
-                    yield chunk['response']
-                    
+                if "response" in chunk:
+                    yield chunk["response"]
+
         except Exception as e:
             logger.error(f"Ollama streaming failed: {type(e).__name__}")
             logger.debug(f"Err msg: {e}", exc_info=True)
@@ -106,20 +98,17 @@ class OllamaClient(ILLMClient):
         try:
             # List available models
             models_response = await self._client.list()
-            
+
             # Extract model names from response
             model_names = [model.model for model in models_response.models]
-            
+
             if self._model in model_names:
                 logger.debug(f"Ollama model '{self._model}' is available")
                 return True
             else:
-                logger.warning(
-                    f"Ollama model '{self._model}' not found. "
-                    f"Available: {model_names}"
-                )
+                logger.warning(f"Ollama model '{self._model}' not found. " f"Available: {model_names}")
                 return False
-                
+
         except Exception as e:
             logger.error(f"Ollama health check failed: {type(e).__name__}")
             logger.debug(f"Err msg: {e}", exc_info=True)

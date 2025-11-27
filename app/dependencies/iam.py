@@ -11,9 +11,9 @@ def get_iam_client() -> IIAMClient:
     """
     Factory function to get the configured IAM client.
     """
-    
+
     logger.debug(f"Creating IAM client with service version: {settings.IAM_SERVICE_VERSION}")
-    
+
     return IAMClient(
         base_url=settings.IAM_SERVICE_URL,
         service_version=settings.IAM_SERVICE_VERSION,
@@ -21,4 +21,3 @@ def get_iam_client() -> IIAMClient:
         client_secret=settings.IAM_CLIENT_SECRET,
         timeout=settings.IAM_SERVICE_TIMEOUT,
     )
-    

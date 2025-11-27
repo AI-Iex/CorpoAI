@@ -63,7 +63,7 @@ class UnitOfWork(IUnitOfWork):
         """
         if not self._session:
             raise DatabaseError("No active session")
-        
+
         try:
             await self._session.flush()
             logger.debug("UnitOfWork: Session flushed successfully")
@@ -79,7 +79,7 @@ class UnitOfWork(IUnitOfWork):
         """
         if not self._session:
             raise DatabaseError("No active session")
-        
+
         try:
             await self._session.refresh(instance)
             logger.debug(f"UnitOfWork: Instance {type(instance).__name__} refreshed")
@@ -87,6 +87,7 @@ class UnitOfWork(IUnitOfWork):
             logger.error("UnitOfWork: Failed to refresh instance")
             logger.debug(f"Err msg: {e}", exc_info=True)
             raise DatabaseError("Failed to refresh instance") from e
+
 
 UnitOfWorkFactory = Callable[[], IUnitOfWork]
 

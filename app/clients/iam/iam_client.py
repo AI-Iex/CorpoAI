@@ -35,14 +35,13 @@ class IAMClient(IIAMClient):
 
         # Create IAM async client
         self._client = httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout)
-        
+
         logger.info(f"IAM client initialized with service version: {self._service_version}")
 
     @property
     def service_version(self) -> str:
         """Get the service version being used."""
         return self._service_version
-
 
     async def authenticate(self) -> str:
         """
@@ -54,21 +53,21 @@ class IAMClient(IIAMClient):
                 json={
                     "client_id": self._client_id,
                     "client_secret": self._client_secret,
-                    "grant_type": "client_credentials"
-                }
+                    "grant_type": "client_credentials",
+                },
             )
             data = response.json()
             if response.status_code == 200:
                 self._access_token = data.get("access_token")
-                logger.info(f"Authentication successful for IAM client")
+                logger.info("Authentication successful for IAM client")
                 return self._access_token
-            
+
             elif response.status_code == 401:
-                err_msg =data.get("detail")
+                err_msg = data.get("detail")
                 raise UnauthorizedError(err_msg or "Unauthorized credentials for IAM client")
             else:
                 raise ServiceUnavailableError(f"IAM service error: {response.status_code}")
-        
+
         except Exception as e:
             logger.error(f"IAM authentication failed: {type(e).__name__}")
             logger.debug(f"Err msg: {e}", exc_info=True)
@@ -81,7 +80,7 @@ class IAMClient(IIAMClient):
         try:
             response = await self._client.get(f"{self._api_prefix}/health")
             return response.status_code == 200
-                
+
         except Exception as e:
             logger.error(f"IAM health check failed: {type(e).__name__}")
             logger.debug(f"Err msg: {e}", exc_info=True)
@@ -92,7 +91,7 @@ class IAMClient(IIAMClient):
         Get currently stored access token.
         """
         return self._access_token
-    
+
     async def close(self) -> None:
         """
         Close the IAM client and release any resources.

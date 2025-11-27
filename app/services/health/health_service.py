@@ -25,12 +25,12 @@ class HealthService(IHealthService):
         Execute all health checks and aggregate results.
         """
         checks: List[DependencyHealth] = []
-        
+
         # Execute all providers
         for provider in self._providers:
             try:
                 provider_response = await provider.check_health()
-                
+
                 checks.append(
                     DependencyHealth(
                         name=provider.name,
@@ -38,11 +38,9 @@ class HealthService(IHealthService):
                         response_time_ms=provider_response.response_time_ms,
                     )
                 )
-                
+
             except Exception as e:
-                logger.error(
-                    f"Health check provider {provider.name} failed: {type(e).__name__}"
-                )
+                logger.error(f"Health check provider {provider.name} failed: {type(e).__name__}")
                 checks.append(
                     DependencyHealth(
                         name=provider.name,
@@ -50,32 +48,30 @@ class HealthService(IHealthService):
                         response_time_ms=0.0,
                     )
                 )
-        
+
         # Determine overall status
         overall_status = self._calculate_overall_status(checks)
-        
+
         return HealthCheckResponse(
             status=overall_status,
             timestamp=datetime.utcnow(),
             checks=checks,
         )
 
-    def _calculate_overall_status(
-        self, checks: List[DependencyHealth]
-    ) -> HealthStatus:
+    def _calculate_overall_status(self, checks: List[DependencyHealth]) -> HealthStatus:
         """
         Calculate overall health status from individual checks.
-        
+
         Logic:
         - If any service is UNHEALTHY → UNHEALTHY
         - If all are HEALTHY or DISABLED → HEALTHY
         """
         if not checks:
             return HealthStatus.UNHEALTHY
-        
+
         for check in checks:
             if check.status == HealthStatus.UNHEALTHY:
                 logger.warning(f"Service {check.name} is unhealthy")
                 return HealthStatus.UNHEALTHY
-        
+
         return HealthStatus.HEALTHY

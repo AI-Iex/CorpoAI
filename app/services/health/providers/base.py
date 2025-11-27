@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class IHealthCheckProvider(ABC):
     """
     Interface for health check providers.
-    
+
     Each provider checks the health of a specific service/component.
     """
 

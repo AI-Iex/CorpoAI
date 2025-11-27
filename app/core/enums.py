@@ -2,6 +2,7 @@ from enum import Enum
 
 # region MESSAGE ROLES ENUM
 
+
 class MessageRoleTypes(str, Enum):
     """Message role types"""
 
@@ -19,6 +20,7 @@ class MessageRoleTypes(str, Enum):
 
 # region HEALTH STATUS ENUM
 
+
 class HealthStatus(str, Enum):
     """Health status types"""
 
@@ -27,7 +29,7 @@ class HealthStatus(str, Enum):
 
     UNHEALTHY = "unhealthy"
     "Unhealthy status"
-    
+
     DISABLED = "disabled"
     "Disabled/not configured"
 
@@ -35,6 +37,7 @@ class HealthStatus(str, Enum):
 # endregion HEALTH STATUS ENUM
 
 # region CHROMA MODE ENUM
+
 
 class ChromaMode(str, Enum):
     """Chroma mode types"""
@@ -49,6 +52,7 @@ class ChromaMode(str, Enum):
 # endregion CHROMA MODE ENUM
 
 # region LLM PROVIDER ENUM
+
 
 class LLMProvider(str, Enum):
     """LLM provider types"""

@@ -22,14 +22,13 @@ class Settings(BaseSettings):
     ENVIRONMENT: str
     DEBUG: bool
     LOG_LEVEL: str
-    
 
     # Server
     HOST: str
     PORT: int
     RELOAD: bool = True
 
-    # Postgree Database 
+    # Postgree Database
     DATABASE_URL: str
     DB_ECHO: bool = False
     DB_POOL_SIZE: int
@@ -50,19 +49,19 @@ class Settings(BaseSettings):
     IAM_CLIENT_ID: str
     IAM_CLIENT_SECRET: str
 
-    # LLM Configuration 
-    LLM_PROVIDER: str 
-    LLM_BASE_URL: str 
-    LLM_API_KEY: str 
-    LLM_MODEL: str 
-    LLM_TEMPERATURE: float 
-    LLM_MAX_TOKENS: int 
-    LLM_TIMEOUT: int 
+    # LLM Configuration
+    LLM_PROVIDER: str
+    LLM_BASE_URL: str
+    LLM_API_KEY: str
+    LLM_MODEL: str
+    LLM_TEMPERATURE: float
+    LLM_MAX_TOKENS: int
+    LLM_TIMEOUT: int
 
     # ChromaDB
-    CHROMA_MODE: str 
-    CHROMA_HOST: str 
-    CHROMA_PORT: int 
+    CHROMA_MODE: str
+    CHROMA_HOST: str
+    CHROMA_PORT: int
     CHROMA_PERSIST_DIRECTORY: str
 
     # Embeddings
