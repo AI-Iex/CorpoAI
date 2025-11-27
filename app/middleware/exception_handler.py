@@ -42,7 +42,7 @@ async def exception_handler_middleware(request: Request, call_next: Callable) ->
 
     except BaseAppException as exc:
         request_id = _get_safe_request_id(request)
-        
+
         logger.warning(
             f"Application exception: {exc.message}",
             extra={
@@ -52,17 +52,15 @@ async def exception_handler_middleware(request: Request, call_next: Callable) ->
                 "method": request.method,
             },
         )
-        
+
         return JSONResponse(
             status_code=exc.status_code,
-            content=_build_error_response(
-                request, request_id, exc.__class__.__name__, exc.message
-            ),
+            content=_build_error_response(request, request_id, exc.__class__.__name__, exc.message),
         )
 
     except SQLAlchemyError as exc:
         request_id = _get_safe_request_id(request)
-        
+
         logger.error(
             f"Database error: {str(exc)}",
             extra={
@@ -72,17 +70,15 @@ async def exception_handler_middleware(request: Request, call_next: Callable) ->
             },
             exc_info=True,
         )
-        
+
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=_build_error_response(
-                request, request_id, "DatabaseError", "A database error occurred"
-            ),
+            content=_build_error_response(request, request_id, "DatabaseError", "A database error occurred"),
         )
 
     except Exception as exc:
         request_id = _get_safe_request_id(request)
-        
+
         logger.error(
             f"Unhandled exception: {str(exc)}",
             extra={
@@ -92,10 +88,8 @@ async def exception_handler_middleware(request: Request, call_next: Callable) ->
             },
             exc_info=True,
         )
-        
+
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=_build_error_response(
-                request, request_id, "InternalServerError", "An unexpected error occurred"
-            ),
+            content=_build_error_response(request, request_id, "InternalServerError", "An unexpected error occurred"),
         )

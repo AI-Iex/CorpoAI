@@ -25,7 +25,7 @@ _client_id_ctx: ContextVar[Optional[UUID]] = ContextVar("client_id", default=Non
 
 def _mask_value(value: str, level: str) -> str:
     """Mask sensitive values based on privacy level.
-    
+
     Privacy levels:
         - none: No masking applied
         - standard: Mask emails only
@@ -44,9 +44,7 @@ def _mask_value(value: str, level: str) -> str:
     # Mask UUIDs only at strict level
     if level == LogPrivacyLevel.STRICT and len(value) > 4:
         # Check if it looks like a UUID (hex chars and hyphens)
-        if len(value) >= UUID_DISPLAY_LENGTH and all(
-            c in "0123456789abcdef-" for c in value.lower()
-        ):
+        if len(value) >= UUID_DISPLAY_LENGTH and all(c in "0123456789abcdef-" for c in value.lower()):
             return _mask_uuid(value)
 
     return value
@@ -58,22 +56,22 @@ def _mask_email(email: str) -> str:
     """
     try:
         local, domain = email.split("@", 1)
-        
+
         # Mask local part
         if len(local) <= EMAIL_MIN_LENGTH:
             masked_local = "*"
         else:
             masked_local = local[0] + "*" * (len(local) - 1)
-        
+
         # Mask domain part
         domain_parts = domain.split(".")
         if not domain_parts or not domain_parts[0]:
             return MASK_PLACEHOLDER
-            
+
         masked_domain = domain_parts[0][0] + "*" * max(0, len(domain_parts[0]) - 1)
         if len(domain_parts) > 1:
             masked_domain = f"{masked_domain}.{'.'.join(domain_parts[1:])}"
-            
+
         return f"{masked_local}@{masked_domain}"
     except (ValueError, IndexError, AttributeError):
         return MASK_PLACEHOLDER
@@ -96,17 +94,34 @@ def _mask_uuid(value: str) -> str:
 
 # Blacklist of LogRecord attributes to exclude from extras
 _RECORD_BLACKLIST = {
-    "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
-    "module", "exc_info", "exc_text", "stack_info", "lineno", "funcName",
-    "created", "msecs", "relativeCreated", "thread", "threadName",
-    "processName", "process", "taskName",
+    "name",
+    "msg",
+    "args",
+    "levelname",
+    "levelno",
+    "pathname",
+    "filename",
+    "module",
+    "exc_info",
+    "exc_text",
+    "stack_info",
+    "lineno",
+    "funcName",
+    "created",
+    "msecs",
+    "relativeCreated",
+    "thread",
+    "threadName",
+    "processName",
+    "process",
+    "taskName",
 }
 
 
 class JSONFormatter(logging.Formatter):
     """
     JSON formatter for structured logging with privacy masking.
-    
+
     Produces JSON logs with the following structure:
     {
         "timestamp": "2025-11-27T14:50:42.693643Z",
@@ -131,7 +146,7 @@ class JSONFormatter(logging.Formatter):
         """
         payload = self._build_base_payload(record)
         extras = self._extract_extras(record)
-        
+
         if extras:
             payload["extra"] = extras
 
@@ -143,11 +158,11 @@ class JSONFormatter(logging.Formatter):
     def _build_base_payload(self, record: logging.LogRecord) -> Dict[str, Any]:
         """
         Build base log payload with standard fields.
-        
+
         Dictionary with timestamp, level, logger, function, message
         """
         log_dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
-        
+
         return {
             "timestamp": log_dt.isoformat().replace("+00:00", "Z"),
             "level": record.levelname,
@@ -164,7 +179,7 @@ class JSONFormatter(logging.Formatter):
         for key, value in record.__dict__.items():
             if key in _RECORD_BLACKLIST or value is None:
                 continue
-                
+
             # Ensure value is JSON serializable
             try:
                 json.dumps(value, default=str)
@@ -180,21 +195,21 @@ class JSONFormatter(logging.Formatter):
         """
         if level == LogPrivacyLevel.NONE:
             return obj
-            
+
         if isinstance(obj, dict):
             return {k: self._mask_sensitive_data(v, level) for k, v in obj.items()}
         elif isinstance(obj, list):
             return [self._mask_sensitive_data(v, level) for v in obj]
         elif isinstance(obj, str):
             return _mask_value(obj, level)
-            
+
         return obj
 
 
 class RequestIdFilter(logging.Filter):
     """
     Logging filter that injects request context from ContextVars.
-    
+
     Adds request_id, request_by_user_id, and request_by_client_id to all
     log records when available in the current context.
     """
@@ -292,7 +307,7 @@ def configure_third_party_loggers(
         logger = logging.getLogger(logger_name)
         logger.setLevel(level)
         logger.propagate = False
-        
+
         if attach_json_handler and handler:
             logger.handlers = [handler]
 
@@ -356,7 +371,7 @@ def reset_request_context(
     Reset request context to previous values.
     """
     _request_id_ctx.reset(request_token)
-    
+
     if user_token is not None:
         _user_id_ctx.reset(user_token)
     if client_token is not None:

@@ -28,7 +28,7 @@ class HealthService(IHealthService):
 
         # Execute all providers
         logger.info("Starting health checks", extra={"provider_count": len(self._providers)})
-        
+
         for provider in self._providers:
             try:
                 provider_response = await provider.check_health()
@@ -70,7 +70,7 @@ class HealthService(IHealthService):
 
         # Determine overall status
         overall_status = self._calculate_overall_status(checks)
-        
+
         logger.info(
             "Health checks completed",
             extra={

@@ -94,7 +94,7 @@ async def logging_middleware(request: Request, call_next):
 
     try:
         response: Response = await call_next(request)
-        
+
     except Exception as exc:
         # Log error summary without full traceback in access log
         duration_ms = (time.perf_counter() - start_time) * 1000
@@ -108,7 +108,7 @@ async def logging_middleware(request: Request, call_next):
                 "error_message": str(exc)[:ERROR_MESSAGE_MAX_LENGTH],
             },
         )
-        
+
         # Cleanup and re-raise for exception handler
         try:
             reset_request_context(request_token, user_token, client_token)

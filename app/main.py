@@ -39,8 +39,6 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning("ChromaDB initialization failed (non-critical)", extra={"error": str(e)})
 
-    
-
     yield
 
     # Shutdown
