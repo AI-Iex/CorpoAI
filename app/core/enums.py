@@ -86,3 +86,25 @@ class LogPrivacyLevel(str, Enum):
 
 
 # endregion LOG PRIVACY LEVEL ENUM
+
+
+# region DOCUMENT STATUS ENUM
+
+
+class DocumentStatus(str, Enum):
+    """Document processing status types"""
+
+    PENDING = "pending"
+    "Pending processing"
+
+    PROCESSING = "processing"
+    "Currently being processed"
+
+    COMPLETED = "completed"
+    "Processing completed successfully"
+
+    FAILED = "failed"
+    "Processing failed"
+
+
+# endregion DOCUMENT STATUS ENUM
