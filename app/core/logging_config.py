@@ -256,12 +256,16 @@ class RequestIdFilter(logging.Filter):
 
 def setup_logging(
     service_name: str = settings.APP_NAME,
-    level: int = logging.INFO,
+    level: Optional[int] = None,
     privacy_level: Optional[str] = None,
 ) -> logging.Logger:
     """
     Configure application logging with JSON formatting and context injection.
     """
+    # Convert LOG_LEVEL string from settings to logging level int
+    if level is None:
+        level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+
     # Create and configure handler
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setLevel(level)

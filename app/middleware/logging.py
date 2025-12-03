@@ -12,10 +12,6 @@ logger = logging.getLogger("access")
 # HTTP status codes
 HTTP_INTERNAL_SERVER_ERROR = 500
 
-# Error message max length
-ERROR_MESSAGE_MAX_LENGTH = 200
-
-
 def _get_request_id(request: Request) -> str:
     """
     Get or generate request ID.
@@ -105,15 +101,13 @@ async def logging_middleware(request: Request, call_next):
             extra={
                 **_build_log_extra(request, request_id, duration_ms, status_code),
                 "error_type": type(exc).__name__,
-                "error_message": str(exc)[:ERROR_MESSAGE_MAX_LENGTH],
+                "error_message": str(exc),
             },
         )
 
         # Cleanup and re-raise for exception handler
-        try:
-            reset_request_context(request_token, user_token, client_token)
-        except Exception:
-            raise
+        reset_request_context(request_token, user_token, client_token)
+        raise
 
     # Log successful request
     duration_ms = (time.perf_counter() - start_time) * 1000
