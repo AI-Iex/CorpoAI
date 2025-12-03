@@ -100,7 +100,8 @@ class MessageCreate(MessageBase):
         description="User ID (optional, used when AUTH_ENABLED=true)",
         json_schema_extra={"example": "550e8400-e29b-41d4-a716-446655440000"},
     )
-    stream: bool = Field(False, description="Enable streaming response")
+    thinking: Optional[bool] = Field(False, description="Enable 'thinking' mode for the LLM (if supported)")
+    stream: bool = (Field(False, description="Enable streaming response"),)
 
 
 class MessageCreateInternal(MessageBase):

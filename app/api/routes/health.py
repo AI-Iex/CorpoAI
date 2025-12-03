@@ -6,7 +6,7 @@ from app.services.health.health_service import HealthService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/health")
+router = APIRouter(prefix="/health", tags=["Health"])
 
 
 @router.get(

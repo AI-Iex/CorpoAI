@@ -13,7 +13,7 @@ class SessionBase(BaseModel):
     title: Optional[str] = Field(
         None,
         max_length=200,
-        description="Session title (auto-generated if not provided)",
+        description="Session title",
         json_schema_extra={"example": "Discussion about vacation policy"},
     )
 

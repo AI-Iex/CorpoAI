@@ -90,9 +90,9 @@ class Settings(BaseSettings):
     ENABLE_STREAMING: bool
 
     # Chat
-    MAX_HISTORY_MESSAGES: int
-    SESSION_TIMEOUT_HOURS: int
-    AUTO_TITLE_GENERATION: bool
+    LLM_MAX_CONTEXT_LENGTH: int
+    DEFAULT_TOKENS_PER_CHAR: float = 0.35
+    MESSAGE_OVERHEAD_TOKENS: int = 4
 
     # Tools
     TOOLS_DIRECTORY: str

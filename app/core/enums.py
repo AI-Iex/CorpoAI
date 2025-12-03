@@ -108,3 +108,25 @@ class DocumentStatus(str, Enum):
 
 
 # endregion DOCUMENT STATUS ENUM
+
+
+# region PROMPT TYPE ENUM
+
+
+class PromptType(str, Enum):
+    """Prompt types for LLM interactions"""
+
+    SYSTEM = "system"
+    "Main system prompt defining assistant personality and behavior"
+
+    RAG_CONTEXT = "rag_context"
+    "Prompt for RAG-augmented responses with document context"
+
+    TITLE_GENERATOR = "title_generator"
+    "Prompt for generating session titles from conversation"
+
+    SUMMARIZER = "summarizer"
+    "Prompt for summarizing long conversations"
+
+
+# endregion PROMPT TYPE ENUM

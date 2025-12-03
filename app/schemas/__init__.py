@@ -43,6 +43,14 @@ from app.schemas.health import (
 # Token schemas
 from app.schemas.token import TokenPayload
 
+# Context schemas (LLM context management)
+from app.schemas.context import (
+    LLMMessage,
+    ContextBudget,
+    ContextResult,
+    UnsummarizedMessages,
+)
+
 
 __all__ = [
     # Session
@@ -77,4 +85,9 @@ __all__ = [
     "HealthCheckResponse",
     # Token
     "TokenPayload",
+    # Context
+    "LLMMessage",
+    "ContextBudget",
+    "ContextResult",
+    "UnsummarizedMessages",
 ]

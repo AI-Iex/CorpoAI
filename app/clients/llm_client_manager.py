@@ -4,11 +4,14 @@ from app.core.config import settings
 from app.core.enums import LLMProvider
 from app.core.exceptions import NotImplementedError, ValidationError
 from app.clients.interfaces.llm import ILLMClient
+from app.clients.interfaces.context import IContextManager
 from app.clients.llm.ollama_client import OllamaClient
+from app.clients.llm.context_manager import ContextManager
 
 logger = logging.getLogger(__name__)
 
 _llm_client: Optional[ILLMClient] = None
+_context_manager: Optional[IContextManager] = None
 
 
 def init_llm_client() -> ILLMClient:
@@ -70,10 +73,38 @@ def close_llm_client() -> None:
     Close and cleanup LLM client resources.
     """
     global _llm_client
+    global _context_manager
 
     if _llm_client is not None:
         logger.debug("Closing LLM client")
         _llm_client = None
+        _context_manager = None
         logger.debug("LLM client closed successfully")
     else:
         logger.warning("LLM client already closed or never initialized")
+
+
+def init_context_manager() -> IContextManager:
+    """
+    Initialize Context Manager (requires LLM client to be initialized first).
+    """
+    global _context_manager
+
+    if _context_manager is not None:
+        logger.warning("Context manager already initialized, returning existing instance")
+        return _context_manager
+
+    llm_client = get_llm_client()
+    _context_manager = ContextManager(llm_client=llm_client)
+
+    logger.debug("Context manager initialized successfully")
+    return _context_manager
+
+
+def get_context_manager() -> IContextManager:
+    """
+    Get the Context Manager instance.
+    """
+    if _context_manager is None:
+        raise RuntimeError("Context manager not initialized. Call init_context_manager() first.")
+    return _context_manager
