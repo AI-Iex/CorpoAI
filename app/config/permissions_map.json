@@ -1,6 +1,12 @@
 {
   "permissions": {
 
-    "token:info": "Pruebas de permiso para obtener información del token."
+    "chat:sendmessage": "Permits sending messages to the LLM.",
+    "chat:readhistory": "Allows reading the history of chat sessions.",
+    "sessions:create": "Grants the ability to create new chat sessions.",
+    "sessions:read": "Allows reading chat session details.",
+    "sessions:update": "Grants permission to update existing chat sessions.",
+    "sessions:delete": "Allows deletion of chat sessions."
+
   }
 }

@@ -9,11 +9,13 @@ with open(settings.SERVICE_PERMISSIONS_PATH, "r", encoding="utf-8") as f:
 
 PERMISSIONS: dict[str, str] = data["permissions"]
 
+
 # Build a dynamic namespace with constants
 class PermissionNamespace(SimpleNamespace):
     """
     Allows access like:
         Permissions.USERS_CREATE -> "users:create"
     """
+
 
 Permissions = PermissionNamespace(**{k.replace(":", "_").upper(): k for k in PERMISSIONS.keys()})
