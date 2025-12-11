@@ -10,6 +10,7 @@ from app.core.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
 
+
 class SessionService(ISessionService):
     """Service for session operations."""
 

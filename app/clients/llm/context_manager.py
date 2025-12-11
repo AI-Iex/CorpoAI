@@ -9,6 +9,7 @@ from app.schemas.context import LLMMessage, ContextBudget, ContextResult, Unsumm
 
 logger = logging.getLogger(__name__)
 
+
 class ContextManager(IContextManager):
     """Manages LLM context, token budgets, and summarization."""
 
@@ -172,10 +173,7 @@ class ContextManager(IContextManager):
             if existing:
                 parts.append(f"[Previous summary]: {existing}\n")
             parts.append("[Conversation]:")
-            parts.extend(
-                f"{'User' if m.role == MessageRoleTypes.USER else 'Assistant'}: {m.content}"
-                for m in messages
-            )
+            parts.extend(f"{'User' if m.role == MessageRoleTypes.USER else 'Assistant'}: {m.content}" for m in messages)
 
             response = await self._llm.generate(
                 prompt=f"{self._llm.get_prompt(PromptType.SUMMARIZER)}\n\n---\n\n{chr(10).join(parts)}",
@@ -186,11 +184,7 @@ class ContextManager(IContextManager):
 
         except Exception as e:
             logger.warning(f"Summary failed: {e}")
-            user_topics = [
-                m.content.split("\n")[0][:80]
-                for m in messages
-                if m.role == MessageRoleTypes.USER
-            ]
+            user_topics = [m.content.split("\n")[0][:80] for m in messages if m.role == MessageRoleTypes.USER]
             fallback = f"Temas: {'; '.join(user_topics[:3])}" if user_topics else ""
             return f"{existing} | {fallback}" if existing else fallback
 
@@ -215,10 +209,14 @@ class ContextManager(IContextManager):
             max_tokens=self._max_tokens,
             reserved_output=self._reserved_output,
             system_prompt_tokens=self._estimate_tokens(self._llm.system_prompt),
-            history_tokens=sum(self._estimate_tokens(msg.content) + settings.MESSAGE_OVERHEAD_TOKENS for msg in history),
+            history_tokens=sum(
+                self._estimate_tokens(msg.content) + settings.MESSAGE_OVERHEAD_TOKENS for msg in history
+            ),
             new_message_tokens=self._estimate_tokens(new_message) + settings.MESSAGE_OVERHEAD_TOKENS,
             summary_tokens=self._estimate_tokens(summary) + settings.MESSAGE_OVERHEAD_TOKENS if summary else 0,
-            rag_context_tokens=self._estimate_tokens(rag_context) + settings.MESSAGE_OVERHEAD_TOKENS if rag_context else 0,
+            rag_context_tokens=(
+                self._estimate_tokens(rag_context) + settings.MESSAGE_OVERHEAD_TOKENS if rag_context else 0
+            ),
         )
 
     # endregion TOKEN ESTIMATION

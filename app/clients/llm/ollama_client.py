@@ -149,7 +149,7 @@ class OllamaClient(ILLMClient):
         except Exception as e:
             logger.error(f"Ollama chat failed: {type(e).__name__}")
             logger.debug(f"Err msg: {e}", exc_info=True)
-            raise LLMError(f"LLM error")
+            raise LLMError("LLM error")
 
     async def chat_stream(
         self,
@@ -190,7 +190,7 @@ class OllamaClient(ILLMClient):
         except Exception as e:
             logger.error(f"Ollama chat streaming failed: {type(e).__name__}")
             logger.debug(f"Err msg: {e}", exc_info=True)
-            raise LLMError(f"LLM error")
+            raise LLMError("LLM error")
 
     async def generate(
         self,
@@ -240,7 +240,7 @@ class OllamaClient(ILLMClient):
         except Exception as e:
             logger.error(f"Ollama generation failed: {type(e).__name__}")
             logger.debug(f"Err msg: {e}", exc_info=True)
-            raise LLMError(f"LLM error")
+            raise LLMError("LLM error")
 
     async def generate_stream(
         self,
@@ -278,7 +278,7 @@ class OllamaClient(ILLMClient):
         except Exception as e:
             logger.error(f"Ollama streaming failed: {type(e).__name__}")
             logger.debug(f"Err msg: {e}", exc_info=True)
-            raise LLMError(f"LLM error")
+            raise LLMError("LLM error")
 
     async def check_health(self) -> bool:
         """
