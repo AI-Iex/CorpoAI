@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str
     DEBUG: bool
     LOG_LEVEL: str
+    SERVICE_PERMISSIONS_PATH: str
 
     # Server
     HOST: str

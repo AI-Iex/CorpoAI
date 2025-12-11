@@ -28,6 +28,7 @@ async def health_check(
 
 from app.schemas.token import TokenPayload
 from app.core.permissions import requires_permission
+from app.core.permissions_loader import Permissions
 
 
 @router.get(
@@ -38,7 +39,7 @@ from app.core.permissions import requires_permission
     description="**Check the token information.**",
 )
 async def token_info(
-    user: Optional[TokenPayload] = Depends(requires_permission("token:info")),
+    user: Optional[TokenPayload] = Depends(requires_permission(Permissions.TOKEN_INFO)),
 ) -> Optional[TokenPayload]:
     """
     Return token information.

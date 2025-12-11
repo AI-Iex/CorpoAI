@@ -1,0 +1,6 @@
+{
+  "permissions": {
+
+    "token:info": "Pruebas de permiso para obtener información del token."
+  }
+}
