@@ -10,9 +10,11 @@ from app.schemas.session import (
     SessionCreate,
     SessionUpdate,
     SessionResponse,
-    SessionInfo,
     SessionList,
 )
+from app.schemas.token import TokenPayload
+from app.core.permissions import requires_permission
+from app.core.permissions_loader import Permissions
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,7 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 async def send_message(
     payload: MessageCreate,
     chat_service: IChatService = Depends(get_chat_service),
+    user: Optional[TokenPayload] = Depends(requires_permission(Permissions.CHAT_SENDMESSAGE)),
 ) -> ChatResponse:
     """Send a message and get an AI response."""
     return await chat_service.send_message(payload)
@@ -59,6 +62,7 @@ async def get_session_history(
     session_id: UUID = Path(..., description="Session UUID"),
     limit: Optional[int] = Query(None, ge=1, le=1000, description="Limit number of messages"),
     chat_service: IChatService = Depends(get_chat_service),
+    user: Optional[TokenPayload] = Depends(requires_permission(Permissions.CHAT_READHISTORY)),
 ) -> SessionHistory:
     """Get message history for a session."""
     return await chat_service.get_session_history(session_id, limit)
@@ -83,6 +87,7 @@ async def get_session_history(
 async def create_session(
     payload: SessionCreate,
     session_service: ISessionService = Depends(get_session_service),
+    user: Optional[TokenPayload] = Depends(requires_permission(Permissions.SESSIONS_CREATE)),
 ) -> SessionResponse:
     """Create a new chat session."""
     return await session_service.create(payload)
@@ -103,6 +108,7 @@ async def list_sessions(
     skip: int = Query(0, ge=0, description="Number of sessions to skip"),
     limit: int = Query(50, ge=1, le=100, description="Maximum sessions to return"),
     session_service: ISessionService = Depends(get_session_service),
+    user: Optional[TokenPayload] = Depends(requires_permission(Permissions.SESSIONS_READ)),
 ) -> SessionList:
     """List chat sessions with pagination."""
     sessions, total = await session_service.get_by_user(user_id, skip, limit)
@@ -125,6 +131,7 @@ async def list_sessions(
 async def get_session(
     session_id: UUID = Path(..., description="Session UUID"),
     session_service: ISessionService = Depends(get_session_service),
+    user: Optional[TokenPayload] = Depends(requires_permission(Permissions.SESSIONS_READ)),
 ) -> SessionResponse:
     """Get a session by ID."""
     return await session_service.get_by_id(session_id)
@@ -142,6 +149,7 @@ async def update_session(
     session_id: UUID = Path(..., description="Session UUID"),
     payload: SessionUpdate = ...,
     session_service: ISessionService = Depends(get_session_service),
+    user: Optional[TokenPayload] = Depends(requires_permission(Permissions.SESSIONS_UPDATE)),
 ) -> SessionResponse:
     """Update a session."""
     return await session_service.update(session_id, payload)
@@ -156,6 +164,7 @@ async def update_session(
 async def delete_session(
     session_id: UUID = Path(..., description="Session UUID"),
     session_service: ISessionService = Depends(get_session_service),
+    user: Optional[TokenPayload] = Depends(requires_permission(Permissions.SESSIONS_DELETE)),
 ) -> None:
     """Delete a session."""
     await session_service.delete(session_id)

@@ -67,7 +67,9 @@ class ChatService(IChatService):
 
             # Update summary if needed
             if context.needs_summary_update:
-                await self._sessions.update_summary(db, session.id, context.new_summary, context.summary_up_to_message_id)
+                await self._sessions.update_summary(
+                    db, session.id, context.new_summary, context.summary_up_to_message_id
+                )
 
             # Get LLM response
             response = await self._llm.chat(context.messages, thinking=payload.thinking)
@@ -105,7 +107,7 @@ class ChatService(IChatService):
             if not session:
                 raise NotFoundError(f"Session {payload.session_id} not found")
             return session
-        
+
         # Session not provided, create a new one
         session = await self._sessions.create(db, payload.user_id, DEFAULT_SESSION_TITLE)
         logger.debug(f"New session: {session.id}")

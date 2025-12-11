@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from fastapi import APIRouter, Depends, status
 from app.dependencies.health import get_health_service
 from app.schemas.health import HealthCheckResponse

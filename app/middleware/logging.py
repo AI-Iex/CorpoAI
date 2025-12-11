@@ -12,6 +12,7 @@ logger = logging.getLogger("access")
 # HTTP status codes
 HTTP_INTERNAL_SERVER_ERROR = 500
 
+
 def _get_request_id(request: Request) -> str:
     """
     Get or generate request ID.

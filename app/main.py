@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.api.routes.health import router as health_router
 from app.api.routes.chat import router as chat_router
+from app.api.routes.info import router as info_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging, configure_third_party_loggers
 from app.db.chroma_client import close_chroma, init_chroma
@@ -135,6 +136,7 @@ async def exception_handler_middleware_wrapper(request, call_next):
 
 
 # Include routers
+app.include_router(info_router)
 app.include_router(health_router)
 app.include_router(chat_router)
 
@@ -145,18 +147,6 @@ async def root():
     """Redirect root to API documentation"""
 
     return RedirectResponse(url="/docs")
-
-
-# API info endpoint
-@app.get("/info", tags=["Info"])
-async def info():
-    """Get API information."""
-    return {
-        "name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "environment": settings.ENVIRONMENT,
-        "debug": settings.DEBUG,
-    }
 
 
 if __name__ == "__main__":
