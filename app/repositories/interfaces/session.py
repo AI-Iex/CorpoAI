@@ -28,6 +28,16 @@ class ISessionRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_by_id_and_user(
+        self,
+        db: AsyncSession,
+        session_id: UUID,
+        user_id: UUID,
+    ) -> Optional[SessionModel]:
+        """Get a session by ID for a specific user."""
+        pass
+
+    @abstractmethod
     async def get_by_user(
         self,
         db: AsyncSession,
@@ -36,6 +46,17 @@ class ISessionRepository(ABC):
         limit: int = 50,
     ) -> List[SessionModel]:
         """Get sessions for a user with pagination."""
+        pass
+
+    @abstractmethod
+    async def get_by_superuser(
+        self,
+        db: AsyncSession,
+        user_id: UUID,
+        skip: int = 0,
+        limit: int = 50,
+    ) -> List[SessionModel]:
+        """Get sessions for a superuser with pagination, including both own and anonymous sessions."""
         pass
 
     @abstractmethod

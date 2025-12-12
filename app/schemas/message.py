@@ -87,21 +87,26 @@ class MessageBase(BaseModel):
 # region CREATE
 
 
-class MessageCreate(MessageBase):
-    """Schema for creating a new message (user input)."""
+class MessageCreateInput(MessageBase):
+    """Schema for user input when creating a message."""
 
     session_id: Optional[UUID] = Field(
         None,
         description="Session ID to continue conversation. If None, a new session is created",
         json_schema_extra={"example": "550e8400-e29b-41d4-a716-446655440000"},
     )
+    thinking: Optional[bool] = Field(False, description="Enable 'thinking' mode for the LLM (if supported)")
+    stream: bool = Field(False, description="Enable streaming response")
+
+
+class MessageCreate(MessageCreateInput):
+    """Schema for creating a new message, used in services."""
+
     user_id: Optional[UUID] = Field(
         None,
         description="User ID (optional, used when AUTH_ENABLED=true)",
         json_schema_extra={"example": "550e8400-e29b-41d4-a716-446655440000"},
     )
-    thinking: Optional[bool] = Field(False, description="Enable 'thinking' mode for the LLM (if supported)")
-    stream: bool = (Field(False, description="Enable streaming response"),)
 
 
 class MessageCreateInternal(MessageBase):

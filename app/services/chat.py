@@ -2,6 +2,7 @@ import logging
 import time
 from typing import Optional, List
 from uuid import UUID
+from app.schemas.user import User
 from app.repositories.interfaces.session import ISessionRepository
 from app.repositories.interfaces.message import IMessageRepository
 from app.services.interfaces.chat import IChatService
@@ -117,10 +118,41 @@ class ChatService(IChatService):
 
     # region GET HISTORY
 
-    async def get_session_history(self, session_id: UUID, limit: Optional[int] = None) -> SessionHistory:
-        """Get message history for a session."""
+    async def get_session_history(
+        self, session_id: UUID, user: Optional[User] = None, limit: Optional[int] = None
+    ) -> SessionHistory:
+        """
+        Get message history for a session.\n
+        If user is provided, ensure the session belongs to the user, if not provided, ensure session is anonymous\n
+        If the user is a superuser, allow access to both own and anonymous sessions.
+        """
         async with self._uow() as db:
-            session = await self._sessions.get_by_id(db, session_id)
+
+            # If user is authenticated, check session ownership
+            if user is not None:
+                # If superuser, allow access to his own and anonymous sessions
+                if user.is_superuser:
+                    session = await self._sessions.get_by_id(db, session_id)
+                    # Superuser can access: own sessions + anonymous sessions
+                    # Cannot access: other users' sessions
+                    if session and session.user_id is not None and str(session.user_id) != str(user.sub):
+                        logger.warning(f"Unauthorized access attempt to session {session_id} by superuser {user.sub}")
+                        raise NotFoundError(f"Session {session_id} not found")
+                # If regular user, restrict to own sessions only
+                else:
+                    session = await self._sessions.get_by_id_and_user(db, session_id, user.sub)
+                    # get_by_id_and_user already filters by user_id, so if session is None, it means not found or not owned
+                    if not session:
+                        logger.warning(f"Unauthorized access attempt to session {session_id} by user {user.sub}")
+                        raise NotFoundError(f"Session {session_id} not found")
+            # If no user, only allow anonymous sessions
+            else:
+                session = await self._sessions.get_by_id(db, session_id)
+                # If session exists but belongs to a user, raise not found
+                if session and session.user_id is not None:
+                    logger.warning(f"Unauthorized access attempt to session {session_id} by anonymous user")
+                    raise NotFoundError(f"Session {session_id} not found")
+
             if not session:
                 raise NotFoundError(f"Session {session_id} not found")
 

@@ -52,11 +52,27 @@ class SessionRepository(ISessionRepository):
     ) -> Optional[SessionModel]:
         """Get a session by ID."""
         try:
-            result = await db.execute(select(SessionModel).where(SessionModel.id == session_id))
+            query = select(SessionModel).where(SessionModel.id == session_id)
+            result = await db.execute(query)
             return result.scalar_one_or_none()
 
         except Exception as e:
             raise RepositoryError(f"Failed to get session: {e}") from e
+
+    async def get_by_id_and_user(
+        self,
+        db: AsyncSession,
+        session_id: UUID,
+        user_id: UUID,
+    ) -> Optional[SessionModel]:
+        """Get a session by ID for a specific user."""
+        try:
+            query = select(SessionModel).where(SessionModel.id == session_id, SessionModel.user_id == user_id)
+            result = await db.execute(query)
+            return result.scalar_one_or_none()
+
+        except Exception as e:
+            raise RepositoryError(f"Failed to get session for user: {e}") from e
 
     async def get_by_user(
         self,
@@ -79,6 +95,28 @@ class SessionRepository(ISessionRepository):
 
         except Exception as e:
             raise RepositoryError(f"Failed to get sessions: {e}") from e
+
+    async def get_by_superuser(
+        self,
+        db: AsyncSession,
+        user_id: UUID,
+        skip: int = 0,
+        limit: int = 50,
+    ) -> List[SessionModel]:
+        """Get sessions for a superuser with pagination, including both own and anonymous sessions."""
+        try:
+            query = (
+                select(SessionModel)
+                .where((SessionModel.user_id == user_id) | (SessionModel.user_id.is_(None)))
+                .order_by(SessionModel.created_at.desc())
+                .offset(skip)
+                .limit(limit)
+            )
+            result = await db.execute(query)
+            return list(result.scalars().all())
+
+        except Exception as e:
+            raise RepositoryError(f"Failed to get sessions for superuser: {e}") from e
 
     async def count_by_user(
         self,
