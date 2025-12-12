@@ -1,16 +1,17 @@
 from fastapi import Depends, HTTPException, status
 from typing import Optional
 from app.schemas.token import TokenPayload
+from app.schemas.user import User
 from app.dependencies.auth import get_current_user
 from app.core.config import settings
 
 
-def requires_permission(permission_name: str):
+def requires_permission(permission_name: str) -> Optional[User]:
     """
     Dependency factory to check if the current user/client has the required permission.
     """
 
-    async def checker(user_info: Optional[TokenPayload] = Depends(get_current_user)) -> Optional[TokenPayload]:
+    async def checker(user_info: Optional[TokenPayload] = Depends(get_current_user)) -> Optional[User]:
 
         # If auth is disabled, return None
         if not settings.AUTH_ENABLED:
@@ -22,7 +23,7 @@ def requires_permission(permission_name: str):
 
         # 1. Check the type of the token
         if user_info.type == "user":
-            print("User token detected")
+            ...
 
         # 2. Check if user is not required to change password
         if user_info.require_password_change:
@@ -38,6 +39,6 @@ def requires_permission(permission_name: str):
         if permission_name not in user_info.permissions:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-        return user_info
+        return User(**user_info.model_dump())
 
     return checker

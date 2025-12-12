@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 from uuid import UUID
+from app.schemas.user import User
 from app.schemas.message import (
     MessageCreate,
     ChatResponse,
@@ -25,6 +26,7 @@ class IChatService(ABC):
     async def get_session_history(
         self,
         session_id: UUID,
+        user: User = None,
         limit: Optional[int] = None,
     ) -> SessionHistory:
         """Get message history for a session."""

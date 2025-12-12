@@ -110,8 +110,6 @@ class OllamaClient(ILLMClient):
         try:
             final_messages = self._build_messages(messages, system_prompt)
 
-            print(final_messages)
-
             response = await self._client.chat(
                 model=self._model,
                 messages=final_messages,
