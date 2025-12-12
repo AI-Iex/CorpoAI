@@ -9,7 +9,16 @@ from app.schemas.token import TokenPayload
 
 logger = logging.getLogger(__name__)
 
-security = HTTPBearer(auto_error=False)
+# Only create security scheme if auth is enabled (hides padlock in Swagger when disabled)
+_http_bearer = HTTPBearer(auto_error=False) if settings.AUTH_ENABLED else None
+
+
+async def _get_credentials() -> Optional[HTTPAuthorizationCredentials]:
+    """Dummy dependency when auth is disabled."""
+    return None
+
+
+security = _http_bearer if settings.AUTH_ENABLED else _get_credentials
 
 
 def decode_token(token: str) -> TokenPayload:

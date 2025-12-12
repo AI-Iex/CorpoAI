@@ -56,11 +56,18 @@ class DatabaseError(BaseAppException):
         super().__init__(message, status_code=500)
 
 
+class RepositoryError(BaseAppException):
+    """Exception raised when repository operation fails."""
+
+    def __init__(self, message: str = "Repository error"):
+        super().__init__(message, status_code=500)
+
+
 class LLMError(BaseAppException):
     """Exception raised when LLM operation fails."""
 
-    def __init__(self, message: str = "LLM processing error"):
-        super().__init__(message, status_code=500)
+    def __init__(self, message: str = "LLM processing error", status_code: int = 500):
+        super().__init__(message, status_code=status_code)
 
 
 class VectorStoreError(BaseAppException):
