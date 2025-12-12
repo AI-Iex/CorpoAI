@@ -23,7 +23,7 @@ def requires_permission(permission_name: str) -> Optional[User]:
 
         # 1. Check the type of the token
         if user_info.type == "user":
-            print("User token detected")
+            ...
 
         # 2. Check if user is not required to change password
         if user_info.require_password_change:

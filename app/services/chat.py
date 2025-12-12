@@ -51,6 +51,8 @@ class ChatService(IChatService):
 
         async with self._uow() as db:
 
+            logger.info(f"Sending message in session {payload.session_id if payload.session_id else 'new session'}")
+
             # Get or create session
             session = await self._get_or_create_session(db, payload)
 
@@ -111,7 +113,7 @@ class ChatService(IChatService):
 
         # Session not provided, create a new one
         session = await self._sessions.create(db, payload.user_id, DEFAULT_SESSION_TITLE)
-        logger.debug(f"New session: {session.id}")
+        logger.info(f"New session created: {session.id}")
         return session
 
     # endregion SEND MESSAGE
@@ -127,6 +129,10 @@ class ChatService(IChatService):
         If the user is a superuser, allow access to both own and anonymous sessions.
         """
         async with self._uow() as db:
+
+            logger.info(
+                f"Getting session history for session {session_id} and user {user.sub if user else 'anonymous'}"
+            )
 
             # If user is authenticated, check session ownership
             if user is not None:
@@ -155,6 +161,10 @@ class ChatService(IChatService):
 
             if not session:
                 raise NotFoundError(f"Session {session_id} not found")
+
+            logger.info(
+                f"Retrieved session history for session {session_id} and user {user.sub if user else 'anonymous'}"
+            )
 
             return SessionHistory(
                 session_id=session.id,

@@ -82,6 +82,9 @@ class SessionService(ISessionService):
     async def create(self, payload: SessionCreate) -> SessionResponse:
         """Create a new session."""
         async with self._uow_factory() as db:
+
+            logger.info(f"Creating session for user {payload.user_id}")
+
             session = await self._session_repo.create(
                 db=db,
                 user_id=payload.user_id,
@@ -89,6 +92,7 @@ class SessionService(ISessionService):
             )
 
             logger.info(f"Created session {session.id} for user {payload.user_id}")
+
             return self._to_response(session)
 
     # endregion CREATE
@@ -98,8 +102,14 @@ class SessionService(ISessionService):
     async def get_by_id(self, session_id: UUID, user: Optional[User]) -> SessionInfo:
         """Get a session by ID with message count."""
         async with self._uow_factory() as db:
+
+            logger.info(f"Getting session {session_id} for user {user.sub if user else 'anonymous'}")
+
             session = await self._get_session_with_access_check(db, session_id, user, "access")
             message_count = await self._message_repo.count_by_session(db, session_id)
+
+            logger.info(f"Retrieved session {session_id} for user {user.sub if user else 'anonymous'}")
+
             return SessionInfo(
                 id=session.id,
                 user_id=session.user_id,
@@ -118,6 +128,8 @@ class SessionService(ISessionService):
     ) -> tuple[List[SessionInfo], int]:
         """Get sessions for a user with pagination."""
         async with self._uow_factory() as db:
+
+            logger.info(f"Getting sessions for user {user.sub if user else 'anonymous'}")
 
             # If is superuser, allow both own and anonymous sessions
             if user and user.is_superuser:
@@ -153,6 +165,8 @@ class SessionService(ISessionService):
                     )
                 )
 
+            logger.info(f"Retrieved {len(result)} sessions for user {user.sub if user else 'anonymous'}")
+
             return result, total
 
     # endregion READ
@@ -162,6 +176,10 @@ class SessionService(ISessionService):
     async def update(self, session_id: UUID, user: Optional[User], payload: SessionUpdate) -> SessionResponse:
         """Update a session."""
         async with self._uow_factory() as db:
+
+            logger.info(f"Trying to update session {session_id}")
+
+            # Verify access before updating
             session = await self._get_session_with_access_check(db, session_id, user, "update")
 
             if payload.title is not None:
@@ -177,6 +195,9 @@ class SessionService(ISessionService):
     async def delete(self, session_id: UUID, user: Optional[User]) -> bool:
         """Delete a session."""
         async with self._uow_factory() as db:
+
+            logger.info(f"Trying to delete session {session_id}")
+
             # Verify access before deleting
             await self._get_session_with_access_check(db, session_id, user, "delete")
 
