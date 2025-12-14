@@ -6,6 +6,7 @@ from fastapi.responses import RedirectResponse
 from app.api.routes.health import router as health_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.info import router as info_router
+from app.api.routes.document import router as document_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging, configure_third_party_loggers
 from app.db.chroma_client import close_chroma, init_chroma
@@ -14,6 +15,10 @@ from app.clients.llm_client_manager import (
     init_llm_client,
     close_llm_client,
     init_context_manager,
+)
+from app.clients.embedding_client_manager import (
+    init_embedding_client,
+    close_embedding_client,
 )
 from app.clients.iam_client_manager import init_iam_client, close_iam_client
 from app.middleware.exception_handler import exception_handler_middleware
@@ -49,7 +54,7 @@ async def lifespan(app: FastAPI):
         logger.error("Failed to initialize database", extra={"error": str(e)}, exc_info=True)
         raise
 
-    # Initialize LLM Client (always required)
+    # Initialize LLM Client
     try:
         init_llm_client()
         logger.info("LLM client initialized successfully")
@@ -57,7 +62,7 @@ async def lifespan(app: FastAPI):
         logger.error("Failed to initialize LLM client", extra={"error": str(e)}, exc_info=True)
         raise
 
-    # Initialize Context Manager (requires LLM client)
+    # Initialize Context Manager
     try:
         init_context_manager()
         logger.info("Context manager initialized successfully")
@@ -65,7 +70,7 @@ async def lifespan(app: FastAPI):
         logger.error("Failed to initialize context manager", extra={"error": str(e)}, exc_info=True)
         raise
 
-    # Initialize ChromaDB (optional, only if RAG enabled)
+    # Initialize ChromaDB
     if settings.ENABLE_RAG:
         try:
             await init_chroma()
@@ -73,7 +78,14 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning("ChromaDB initialization failed (non-critical)", extra={"error": str(e)})
 
-    # Initialize IAM Client (optional, only if AUTH enabled)
+        # Initialize Embedding Client
+        try:
+            init_embedding_client()
+            logger.info("Embedding client initialized successfully")
+        except Exception as e:
+            logger.warning("Embedding client initialization failed (non-critical)", extra={"error": str(e)})
+
+    # Initialize IAM Client
     if settings.AUTH_ENABLED:
         try:
             init_iam_client()
@@ -82,16 +94,17 @@ async def lifespan(app: FastAPI):
             logger.error("Failed to initialize IAM client", extra={"error": str(e)}, exc_info=True)
             raise
 
+    # Yield to application after startup
     yield
 
     # Shutdown
     logger.info("Application shutdown")
 
-    # Cleanup in reverse order
     if settings.AUTH_ENABLED:
         close_iam_client()
 
     if settings.ENABLE_RAG:
+        close_embedding_client()
         await close_chroma()
 
     close_llm_client()
@@ -139,6 +152,7 @@ async def exception_handler_middleware_wrapper(request, call_next):
 app.include_router(info_router)
 app.include_router(health_router)
 app.include_router(chat_router)
+app.include_router(document_router)
 
 
 # Root endpoint - redirect to documentation

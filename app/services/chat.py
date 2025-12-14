@@ -6,6 +6,7 @@ from app.schemas.user import User
 from app.repositories.interfaces.session import ISessionRepository
 from app.repositories.interfaces.message import IMessageRepository
 from app.services.interfaces.chat import IChatService
+from app.services.retrieval import RetrievalService
 from app.clients.interfaces.llm import ILLMClient
 from app.clients.interfaces.context import IContextManager
 from app.db.unit_of_work import UnitOfWorkFactory
@@ -19,6 +20,7 @@ from app.schemas.message import (
 from app.models.session import Session
 from app.models.message import Message
 from app.core.enums import MessageRoleTypes
+from app.core.config import settings
 from app.core.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
@@ -36,17 +38,22 @@ class ChatService(IChatService):
         llm_client: ILLMClient,
         context_manager: IContextManager,
         uow_factory: UnitOfWorkFactory,
+        retrieval_service: RetrievalService = None,
     ):
         self._sessions = session_repo
         self._messages = message_repo
         self._llm = llm_client
         self._context = context_manager
         self._uow = uow_factory
+        self._retrieval = retrieval_service
 
     # region SEND MESSAGE
 
     async def send_message(self, payload: MessageCreate) -> ChatResponse:
-        """Send a message and get AI response."""
+        """
+        Send a message and get AI response.
+        """
+
         start = time.perf_counter()
 
         async with self._uow() as db:
@@ -65,8 +72,21 @@ class ChatService(IChatService):
             # Determine unsummarized messages
             unsummarized = self._context.extract_unsummarized(all_msgs, session.summary_up_to_message_id)
 
+            # Get RAG context if enabled
+            rag_context = None
+            rag_sources = None
+            if self._retrieval:
+                try:
+                    rag_result = await self._retrieval.get_context(payload.content)
+                    if rag_result["has_context"]:
+                        rag_context = rag_result["context"]
+                        rag_sources = rag_result["sources"]
+                        logger.debug(f"RAG context: {len(rag_sources)} sources found")
+                except Exception as e:
+                    logger.warning(f"RAG retrieval failed: {e}")
+
             # Build context
-            context = await self._context.build_context(unsummarized, payload.content, session.summary)
+            context = await self._context.build_context(unsummarized, payload.content, session.summary, rag_context)
 
             # Update summary if needed
             if context.needs_summary_update:
@@ -84,6 +104,7 @@ class ChatService(IChatService):
                 session.id,
                 MessageRoleTypes.ASSISTANT,
                 response.content,
+                sources=rag_sources,
                 tokens_used=response.tokens_used,
                 latency_ms=latency,
             )
@@ -93,7 +114,9 @@ class ChatService(IChatService):
                 title = payload.content[:50].strip() + ("..." if len(payload.content) > 50 else "")
                 await self._sessions.update_title(db, session.id, title)
 
-            logger.info(f"Chat: session={session.id}, latency={latency:.0f}ms, tokens={response.tokens_used}")
+            logger.info(
+                f"Chat: session={session.id}, latency={latency:.0f}ms, tokens={response.tokens_used}, rag_sources={len(rag_sources) if rag_sources else 0}"
+            )
 
             return ChatResponse(
                 session_id=session.id,

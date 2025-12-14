@@ -73,7 +73,6 @@ class Settings(BaseSettings):
     # Document Processing
     DOCUMENTS_STORAGE_PATH: str
     MAX_UPLOAD_SIZE_MB: int
-    ALLOWED_EXTENSIONS: str
     CHUNK_SIZE: int
     CHUNK_OVERLAP: int
     SEPARATORS: str = '["\n\n", "\n", " ", ""]'
@@ -149,11 +148,6 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
-
-    @property
-    def allowed_extensions_list(self) -> List[str]:
-        """Get allowed file extensions as list"""
-        return [ext.strip() for ext in self.ALLOWED_EXTENSIONS.split(",")]
 
     @property
     def max_upload_size_bytes(self) -> int:

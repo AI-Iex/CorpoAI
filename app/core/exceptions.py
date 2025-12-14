@@ -77,6 +77,72 @@ class VectorStoreError(BaseAppException):
         super().__init__(message, status_code=500)
 
 
+class DocumentError(BaseAppException):
+    """Base exception for document-related errors."""
+
+    def __init__(self, message: str = "Document error", status_code: int = 500):
+        super().__init__(message, status_code=status_code)
+
+
+class DocumentNotFoundError(DocumentError):
+    """Exception raised when a document is not found."""
+
+    def __init__(self, document_id: str = None):
+        message = f"Document not found: {document_id}" if document_id else "Document not found"
+        super().__init__(message, status_code=404)
+
+
+class DocumentUploadError(DocumentError):
+    """Exception raised when document upload fails."""
+
+    def __init__(self, message: str = "Failed to upload document"):
+        super().__init__(message, status_code=400)
+
+
+class DocumentProcessingError(DocumentError):
+    """Exception raised when document processing fails."""
+
+    def __init__(self, message: str = "Failed to process document"):
+        super().__init__(message, status_code=422)
+
+
+class UnsupportedFileTypeError(DocumentError):
+    """Exception raised when file type is not supported."""
+
+    def __init__(self, file_type: str = None):
+        message = f"Unsupported file type: {file_type}" if file_type else "Unsupported file type"
+        super().__init__(message, status_code=415)
+
+
+class FileTooLargeError(DocumentError):
+    """Exception raised when file exceeds size limit."""
+
+    def __init__(self, max_size_mb: int = None):
+        message = f"File exceeds maximum size of {max_size_mb}MB" if max_size_mb else "File too large"
+        super().__init__(message, status_code=413)
+
+
+class DocumentExtractionError(DocumentError):
+    """Exception raised when text extraction from document fails."""
+
+    def __init__(self, message: str = "Failed to extract text from document"):
+        super().__init__(message, status_code=422)
+
+
+class ChunkingError(DocumentError):
+    """Exception raised when document chunking fails."""
+
+    def __init__(self, message: str = "Failed to chunk document"):
+        super().__init__(message, status_code=500)
+
+
+class EmbeddingError(DocumentError):
+    """Exception raised when embedding generation fails."""
+
+    def __init__(self, message: str = "Failed to generate embeddings"):
+        super().__init__(message, status_code=500)
+
+
 class NotImplementedError(BaseAppException):
     """Exception raised when a feature is not implemented."""
 

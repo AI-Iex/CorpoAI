@@ -108,7 +108,7 @@ class ContextManager(IContextManager):
             )
             fitted = self._fit_to_budget(history, available)
             return ContextResult(
-                messages=self._assemble_messages(fitted, new_message, summary, rag_context),
+                messages=self._assemble_messages(fitted, summary, rag_context),
                 budget=budget,
             )
 
@@ -122,7 +122,7 @@ class ContextManager(IContextManager):
         logger.info(f"Summarized {len(to_summarize)} msgs, keeping {len(recent)}")
 
         return ContextResult(
-            messages=self._assemble_messages(recent, new_message, new_summary, rag_context),
+            messages=self._assemble_messages(recent, new_summary, rag_context),
             budget=self._calculate_budget(recent, new_message, new_summary, rag_context),
             needs_summary_update=True,
             new_summary=new_summary,

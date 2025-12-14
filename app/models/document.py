@@ -28,8 +28,8 @@ class Document(Base):
     num_chunks = Column(Integer, nullable=True)
     chroma_collection = Column(String(100), default="documents")
 
-    # Additional metadata
-    metadata_ = Column("metadata", JSONB, default={})
+    # Additional metadata (metadata_ to avoid SQLAlchemy reserved name collision)
+    metadata_ = Column("metadata", JSONB, default=dict)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

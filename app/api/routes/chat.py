@@ -135,7 +135,7 @@ async def list_sessions(
     skip: int = Query(0, ge=0, description="Number of sessions to skip"),
     limit: int = Query(50, ge=1, le=100, description="Maximum sessions to return"),
     session_service: ISessionService = Depends(get_session_service),
-    user: Optional[User] = Depends(requires_permission(Permissions.SESSIONS_READ)),
+    user: Optional[User] = Depends(requires_permission(Permissions.SESSIONS_LIST)),
 ) -> SessionList:
     """List chat sessions with pagination."""
     sessions, total = await session_service.get_by_user(user if user else None, skip, limit, read_anonymous)

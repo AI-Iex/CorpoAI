@@ -110,6 +110,28 @@ class DocumentStatus(str, Enum):
 # endregion DOCUMENT STATUS ENUM
 
 
+# region DOCUMENT TYPE FILE ENUM
+
+
+class DocumentTypeFile(str, Enum):
+    """Document type file categories"""
+
+    PDF = "pdf"
+    "PDF document"
+
+    TXT = "txt"
+    "Text document"
+
+    MD = "md"
+    "Markdown document"
+
+    DOCX = "docx"
+    "Word document"
+
+
+# endregion DOCUMENT TYPE FILE ENUM
+
+
 # region PROMPT TYPE ENUM
 
 
