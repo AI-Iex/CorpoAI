@@ -1,11 +1,14 @@
 import logging
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID
 from fastapi import APIRouter, Depends, status, Query, Path
+from fastapi.responses import StreamingResponse
 from app.dependencies.services import get_chat_service, get_session_service
 from app.services.interfaces.chat import IChatService
 from app.services.interfaces.session import ISessionService
 from app.schemas.message import MessageCreate, MessageCreateInput, ChatResponse, SessionHistory
+from app.schemas.streaming import StreamChunk
+from app.core.enums import StreamEventType
 from app.schemas.session import (
     SessionBase,
     SessionCreate,
@@ -37,23 +40,48 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
         "- `content`: The user's message.\n"
         "- `session_id`: Optional. If provided, continues an existing session; otherwise creates a new one.\n"
         "- `thinking`: Activates extended reasoning (slower, model-dependent).\n"
-        "- `stream`: Enables streaming responses."
+        "- `stream`: Enables streaming responses (Server-Sent Events)."
     ),
-    response_description="The user message and assistant response",
+    response_description="The user message and assistant response (or SSE stream if stream=true)",
 )
 async def send_message(
     payload: MessageCreateInput,
     chat_service: IChatService = Depends(get_chat_service),
     user: Optional[User] = Depends(requires_permission(Permissions.CHAT_SENDMESSAGE)),
-) -> ChatResponse:
+) -> Union[ChatResponse, StreamingResponse]:
     """Send a message and get an AI response."""
 
     if user:
-        payload = MessageCreate(**payload.model_dump(), user_id=user.sub)
+        message_payload = MessageCreate(**payload.model_dump(), user_id=user.sub)
     else:
-        payload = MessageCreate(**payload.model_dump())
+        message_payload = MessageCreate(**payload.model_dump())
 
-    return await chat_service.send_message(payload)
+    # Handle streaming response
+    if payload.stream:
+        async def event_generator():
+            try:
+                async for chunk in chat_service.send_message_stream(message_payload):
+                    yield f"data: {chunk.model_dump_json(exclude_none=True)}\n\n"
+            except Exception as e:
+                error_chunk = StreamChunk(
+                    event=StreamEventType.ERROR,
+                    data=str(e),
+                    metadata={"error_type": type(e).__name__},
+                )
+                yield f"data: {error_chunk.model_dump_json(exclude_none=True)}\n\n"
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    # Normal response
+    return await chat_service.send_message(message_payload)
 
 
 @router.get(

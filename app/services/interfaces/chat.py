@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import Optional, List, AsyncIterator
 from uuid import UUID
 from app.schemas.user import User
 from app.schemas.message import (
@@ -9,6 +9,7 @@ from app.schemas.message import (
     UserMessageResponse,
     AssistantMessageResponse,
 )
+from app.schemas.streaming import StreamChunk
 
 
 class IChatService(ABC):
@@ -18,6 +19,14 @@ class IChatService(ABC):
     async def send_message(self, payload: MessageCreate) -> ChatResponse:
         """
         Send a message and get AI response.
+        Creates a new session if session_id is not provided.
+        """
+        pass
+
+    @abstractmethod
+    async def send_message_stream(self, payload: MessageCreate) -> AsyncIterator[StreamChunk]:
+        """
+        Send a message and stream the AI response.
         Creates a new session if session_id is not provided.
         """
         pass

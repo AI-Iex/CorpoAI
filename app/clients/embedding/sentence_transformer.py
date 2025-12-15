@@ -32,8 +32,6 @@ class SentenceTransformerClient(IEmbeddingClient):
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._dimension: int | None = None
 
-        logger.info(f"SentenceTransformerClient configured: model={model_name}, device={device}")
-
     # region PROPERTIES
 
     @property

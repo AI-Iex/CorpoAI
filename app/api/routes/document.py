@@ -78,11 +78,11 @@ async def upload_document(
     summary="List documents",
     description=(
         "**Get a paginated list of all documents.**\n\n"
-        "Documents are sorted by creation date (newest first).\n"
-        "-`skip` indicates how many documents to skip."
-        "-`limit` specifies the maximum number to return."
-        "-`status` to filter by processing status."
-        "-`file_type` to filter by document file type: pdf, txt, md, docx..."
+        "Documents are sorted by creation date (newest first).\n\n"
+        "- `skip` indicates how many documents to skip.\n"
+        "- `limit` specifies the maximum number to return.\n"
+        "- `status` to filter by processing status.\n"
+        "- `file_type` to filter by document file type: pdf, txt, md, docx..."
     ),
     response_description="Paginated list of documents",
 )

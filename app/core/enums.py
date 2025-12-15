@@ -152,3 +152,22 @@ class PromptType(str, Enum):
 
 
 # endregion PROMPT TYPE ENUM
+
+# region STREAM EVENT TYPE ENUM
+
+
+class StreamEventType(str, Enum):
+    """Types of streaming events."""
+
+    STATUS = "status"
+    "Progress updates: 'Searching documents...', 'Generating...'" 
+    SOURCE = "source"
+    "RAG source found"
+    TOKEN = "token"
+    "Individual token from LLM"
+    DONE = "done"
+    "Stream completed"
+    ERROR = "error"
+    "Error occurred"
+
+# endregion STREAM EVENT TYPE ENUM
