@@ -145,7 +145,7 @@ class ChatService(IChatService):
                 session = await self._get_or_create_session(db, payload)
 
                 # Save user message to DB
-                user_msg = await self._messages.create(db, session.id, MessageRoleTypes.USER, payload.content)
+                await self._messages.create(db, session.id, MessageRoleTypes.USER, payload.content)
 
                 # Get history of the session
                 all_msgs = await self._messages.get_by_session(db, session.id)
@@ -170,11 +170,13 @@ class ChatService(IChatService):
                             for source in rag_sources:
                                 yield StreamChunk(
                                     event=StreamEventType.SOURCE,
-                                    data=source.get("document_name") or source.get("filename") or "Unknown",
+                                    data=source.get("document_name", "Unknown"),
                                     metadata={
                                         "document_id": source.get("document_id"),
+                                        "document_name": source.get("document_name", "Unknown"),
                                         "score": source.get("score"),
                                         "chunk_index": source.get("chunk_index"),
+                                        "text_preview": source.get("text_preview"),
                                     },
                                 )
 
@@ -183,9 +185,7 @@ class ChatService(IChatService):
                         logger.warning(f"RAG retrieval failed: {e}")
 
                 # Build context
-                context = await self._context.build_context(
-                    unsummarized, payload.content, session.summary, rag_context
-                )
+                context = await self._context.build_context(unsummarized, payload.content, session.summary, rag_context)
 
                 # Update summary if needed
                 if context.needs_summary_update:

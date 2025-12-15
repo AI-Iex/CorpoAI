@@ -58,6 +58,7 @@ async def send_message(
 
     # Handle streaming response
     if payload.stream:
+
         async def event_generator():
             try:
                 async for chunk in chat_service.send_message_stream(message_payload):

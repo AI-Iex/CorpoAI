@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from app.core.exceptions import BaseAppException
 from app.core.logging_config import get_request_id
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,21 @@ def _get_safe_request_id(request: Request) -> str:
     Get request ID from context or request state.
     """
     return get_request_id() or getattr(request.state, "request_id", "unknown")
+
+
+def _get_cors_headers(request: Request) -> dict:
+    """
+    Get CORS headers for error responses.
+    """
+    origin = request.headers.get("origin", "")
+
+    # Check if origin is allowed
+    if "*" in settings.CORS_ORIGINS or origin in settings.CORS_ORIGINS:
+        return {
+            "Access-Control-Allow-Origin": origin or "*",
+            "Access-Control-Allow-Credentials": "true" if settings.CORS_ALLOW_CREDENTIALS else "false",
+        }
+    return {}
 
 
 def _build_error_response(
@@ -36,6 +52,7 @@ def _build_error_response(
 async def exception_handler_middleware(request: Request, call_next: Callable) -> Response:
     """
     Handle all exceptions with structured responses.
+    Includes CORS headers for cross-origin error responses.
     """
     try:
         return await call_next(request)
@@ -56,6 +73,7 @@ async def exception_handler_middleware(request: Request, call_next: Callable) ->
         return JSONResponse(
             status_code=exc.status_code,
             content=_build_error_response(request, request_id, exc.__class__.__name__, exc.message),
+            headers=_get_cors_headers(request),
         )
 
     except SQLAlchemyError as exc:
@@ -74,6 +92,7 @@ async def exception_handler_middleware(request: Request, call_next: Callable) ->
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=_build_error_response(request, request_id, "DatabaseError", "A database error occurred"),
+            headers=_get_cors_headers(request),
         )
 
     except Exception as exc:
@@ -92,4 +111,5 @@ async def exception_handler_middleware(request: Request, call_next: Callable) ->
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=_build_error_response(request, request_id, "InternalServerError", "An unexpected error occurred"),
+            headers=_get_cors_headers(request),
         )

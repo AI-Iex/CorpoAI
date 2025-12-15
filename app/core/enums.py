@@ -160,7 +160,7 @@ class StreamEventType(str, Enum):
     """Types of streaming events."""
 
     STATUS = "status"
-    "Progress updates: 'Searching documents...', 'Generating...'" 
+    "Progress updates: 'Searching documents...', 'Generating...'"
     SOURCE = "source"
     "RAG source found"
     TOKEN = "token"
@@ -169,5 +169,6 @@ class StreamEventType(str, Enum):
     "Stream completed"
     ERROR = "error"
     "Error occurred"
+
 
 # endregion STREAM EVENT TYPE ENUM

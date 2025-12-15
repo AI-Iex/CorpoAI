@@ -149,10 +149,10 @@ async def exception_handler_middleware_wrapper(request, call_next):
 
 
 # Include routers
-app.include_router(info_router)
-app.include_router(health_router)
-app.include_router(chat_router)
-app.include_router(document_router)
+app.include_router(info_router, prefix=settings.route_prefix)
+app.include_router(health_router, prefix=settings.route_prefix)
+app.include_router(chat_router, prefix=settings.route_prefix)
+app.include_router(document_router, prefix=settings.route_prefix)
 
 
 # Root endpoint - redirect to documentation

@@ -142,6 +142,21 @@ class Settings(BaseSettings):
     BATCH_SIZE: int
     MAX_CONCURRENT_REQUESTS: int
 
+    @property
+    def route_prefix(self) -> str:
+        """Returns **API Route** prefix using the configured service version"""
+
+        try:
+
+            v = float(self.APP_VERSION)
+            if v.is_integer():
+                v = int(v)
+
+        except Exception:
+            v = self.APP_VERSION
+
+        return f"/api/v{v}"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
