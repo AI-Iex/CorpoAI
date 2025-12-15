@@ -65,6 +65,9 @@ class ChatService(IChatService):
             # Get or create session
             session = await self._get_or_create_session(db, payload)
 
+            # Update session's last update
+            session = await self._sessions.update_last_update(db, session.id)
+
             # Save user message to DB
             user_msg = await self._messages.create(db, session.id, MessageRoleTypes.USER, payload.content)
 
@@ -143,6 +146,9 @@ class ChatService(IChatService):
 
                 # Get or create session
                 session = await self._get_or_create_session(db, payload)
+
+                # Update session's last update
+                session = await self._sessions.update_last_update(db, session.id)
 
                 # Save user message to DB
                 await self._messages.create(db, session.id, MessageRoleTypes.USER, payload.content)

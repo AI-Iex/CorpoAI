@@ -90,6 +90,15 @@ class ISessionRepository(ABC):
         pass
 
     @abstractmethod
+    async def update_last_update(
+        self,
+        db: AsyncSession,
+        session_id: UUID,
+    ) -> Optional[SessionModel]:
+        """Update session last update timestamp."""
+        pass
+
+    @abstractmethod
     async def delete(
         self,
         db: AsyncSession,

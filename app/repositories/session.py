@@ -179,6 +179,26 @@ class SessionRepository(ISessionRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to update session summary: {e}") from e
 
+    async def update_last_update(
+        self,
+        db: AsyncSession,
+        session_id: UUID,
+    ) -> Optional[SessionModel]:
+        """Update session last update timestamp."""
+        try:
+            session = await self.get_by_id(db, session_id)
+            if not session:
+                return None
+
+            session.updated_at = func.now()
+            await db.flush()
+            await db.refresh(session)
+
+            return session
+
+        except Exception as e:
+            raise RepositoryError(f"Failed to update session timestamp: {e}") from e
+
     # endregion UPDATE
 
     # region DELETE
