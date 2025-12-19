@@ -10,9 +10,11 @@ from app.services.health.providers import (
     DatabaseHealthProvider,
     LLMHealthProvider,
     IAMHealthProvider,
+    EmbeddingHealthProvider,
 )
 from app.clients.llm_client_manager import get_llm_client
 from app.clients.iam_client_manager import get_iam_client
+from app.clients.embedding_client_manager import get_embedding_client
 
 
 async def get_health_service(
@@ -28,10 +30,10 @@ async def get_health_service(
     providers.append(DatabaseHealthProvider(db))
     providers.append(LLMHealthProvider(get_llm_client()))
 
-    # ChromaDB - only if RAG is enabled
+    # ChromaDB and Embedding - only if RAG is enabled
     if settings.ENABLE_RAG:
-        chroma_client = get_chroma_client()
-        providers.append(ChromaHealthProvider(chroma_client))
+        providers.append(ChromaHealthProvider(get_chroma_client()))
+        providers.append(EmbeddingHealthProvider(get_embedding_client()))
 
     # IAM - only if authentication is enabled
     if settings.AUTH_ENABLED:

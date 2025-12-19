@@ -1,11 +1,12 @@
 import logging
 import time
-from typing import Optional, List
+from typing import Optional, List, AsyncIterator
 from uuid import UUID
 from app.schemas.user import User
 from app.repositories.interfaces.session import ISessionRepository
 from app.repositories.interfaces.message import IMessageRepository
 from app.services.interfaces.chat import IChatService
+from app.services.retrieval import RetrievalService
 from app.clients.interfaces.llm import ILLMClient
 from app.clients.interfaces.context import IContextManager
 from app.db.unit_of_work import UnitOfWorkFactory
@@ -16,9 +17,12 @@ from app.schemas.message import (
     UserMessageResponse,
     AssistantMessageResponse,
 )
+from app.schemas.streaming import StreamChunk, StreamDoneMetadata
+from app.core.enums import StreamEventType
 from app.models.session import Session
 from app.models.message import Message
 from app.core.enums import MessageRoleTypes
+from app.core.config import settings
 from app.core.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
@@ -36,17 +40,22 @@ class ChatService(IChatService):
         llm_client: ILLMClient,
         context_manager: IContextManager,
         uow_factory: UnitOfWorkFactory,
+        retrieval_service: RetrievalService = None,
     ):
         self._sessions = session_repo
         self._messages = message_repo
         self._llm = llm_client
         self._context = context_manager
         self._uow = uow_factory
+        self._retrieval = retrieval_service
 
     # region SEND MESSAGE
 
     async def send_message(self, payload: MessageCreate) -> ChatResponse:
-        """Send a message and get AI response."""
+        """
+        Send a message and get AI response.
+        """
+
         start = time.perf_counter()
 
         async with self._uow() as db:
@@ -55,6 +64,9 @@ class ChatService(IChatService):
 
             # Get or create session
             session = await self._get_or_create_session(db, payload)
+
+            # Update session's last update
+            session = await self._sessions.update_last_update(db, session.id)
 
             # Save user message to DB
             user_msg = await self._messages.create(db, session.id, MessageRoleTypes.USER, payload.content)
@@ -65,8 +77,21 @@ class ChatService(IChatService):
             # Determine unsummarized messages
             unsummarized = self._context.extract_unsummarized(all_msgs, session.summary_up_to_message_id)
 
+            # Get RAG context if enabled
+            rag_context = None
+            rag_sources = None
+            if self._retrieval:
+                try:
+                    rag_result = await self._retrieval.get_context(payload.content)
+                    if rag_result["has_context"]:
+                        rag_context = rag_result["context"]
+                        rag_sources = rag_result["sources"]
+                        logger.debug(f"RAG context: {len(rag_sources)} sources found")
+                except Exception as e:
+                    logger.warning(f"RAG retrieval failed: {e}")
+
             # Build context
-            context = await self._context.build_context(unsummarized, payload.content, session.summary)
+            context = await self._context.build_context(unsummarized, payload.content, session.summary, rag_context)
 
             # Update summary if needed
             if context.needs_summary_update:
@@ -84,6 +109,7 @@ class ChatService(IChatService):
                 session.id,
                 MessageRoleTypes.ASSISTANT,
                 response.content,
+                sources=rag_sources,
                 tokens_used=response.tokens_used,
                 latency_ms=latency,
             )
@@ -93,13 +119,135 @@ class ChatService(IChatService):
                 title = payload.content[:50].strip() + ("..." if len(payload.content) > 50 else "")
                 await self._sessions.update_title(db, session.id, title)
 
-            logger.info(f"Chat: session={session.id}, latency={latency:.0f}ms, tokens={response.tokens_used}")
+            logger.info(
+                f"Chat: session={session.id}, latency={latency:.0f}ms, tokens={response.tokens_used}, rag_sources={len(rag_sources) if rag_sources else 0}"
+            )
 
             return ChatResponse(
                 session_id=session.id,
                 user_message=self._to_response(user_msg),
                 assistant_message=self._to_response(assistant_msg),
             )
+
+    async def send_message_stream(self, payload: MessageCreate) -> AsyncIterator[StreamChunk]:
+        """
+        Send a message and stream the AI response.
+        """
+        start = time.perf_counter()
+
+        async with self._uow() as db:
+            try:
+                # Status: Processing
+                yield StreamChunk(event=StreamEventType.STATUS, data="Processing message...")
+
+                logger.info(
+                    f"Streaming message in session {payload.session_id if payload.session_id else 'new session'}"
+                )
+
+                # Get or create session
+                session = await self._get_or_create_session(db, payload)
+
+                # Update session's last update
+                session = await self._sessions.update_last_update(db, session.id)
+
+                # Save user message to DB
+                await self._messages.create(db, session.id, MessageRoleTypes.USER, payload.content)
+
+                # Get history of the session
+                all_msgs = await self._messages.get_by_session(db, session.id)
+
+                # Determine unsummarized messages
+                unsummarized = self._context.extract_unsummarized(all_msgs, session.summary_up_to_message_id)
+
+                # Get RAG context if enabled
+                rag_context = None
+                rag_sources = []
+
+                if self._retrieval:
+                    yield StreamChunk(event=StreamEventType.STATUS, data="Searching in documents...")
+
+                    try:
+                        rag_result = await self._retrieval.get_context(payload.content)
+                        if rag_result["has_context"]:
+                            rag_context = rag_result["context"]
+                            rag_sources = rag_result["sources"]
+
+                            # Emit each source found
+                            for source in rag_sources:
+                                yield StreamChunk(
+                                    event=StreamEventType.SOURCE,
+                                    data=source.get("document_name", "Unknown"),
+                                    metadata={
+                                        "document_id": source.get("document_id"),
+                                        "document_name": source.get("document_name", "Unknown"),
+                                        "score": source.get("score"),
+                                        "chunk_index": source.get("chunk_index"),
+                                        "text_preview": source.get("text_preview"),
+                                    },
+                                )
+
+                            logger.debug(f"RAG context: {len(rag_sources)} sources found")
+                    except Exception as e:
+                        logger.warning(f"RAG retrieval failed: {e}")
+
+                # Build context
+                context = await self._context.build_context(unsummarized, payload.content, session.summary, rag_context)
+
+                # Update summary if needed
+                if context.needs_summary_update:
+                    await self._sessions.update_summary(
+                        db, session.id, context.new_summary, context.summary_up_to_message_id
+                    )
+
+                # Status: Generating
+                yield StreamChunk(event=StreamEventType.STATUS, data="Generating response...")
+
+                # Stream LLM response
+                full_response = ""
+                async for token in self._llm.chat_stream(context.messages, thinking=payload.thinking):
+                    if token:  # Skip empty tokens
+                        full_response += token
+                        yield StreamChunk(event=StreamEventType.TOKEN, data=token)
+
+                # Save assistant message
+                latency = (time.perf_counter() - start) * 1000
+                assistant_msg = await self._messages.create(
+                    db,
+                    session.id,
+                    MessageRoleTypes.ASSISTANT,
+                    full_response,
+                    sources=rag_sources if rag_sources else None,
+                    latency_ms=latency,
+                )
+
+                # Auto-title new sessions
+                if await self._messages.count_by_session(db, session.id) == 2:
+                    title = payload.content[:50].strip() + ("..." if len(payload.content) > 50 else "")
+                    await self._sessions.update_title(db, session.id, title)
+
+                logger.info(
+                    f"Chat stream: session={session.id}, latency={latency:.0f}ms, rag_sources={len(rag_sources)}"
+                )
+
+                # Done event with metadata
+                yield StreamChunk(
+                    event=StreamEventType.DONE,
+                    data="",
+                    metadata=StreamDoneMetadata(
+                        session_id=session.id,
+                        message_id=assistant_msg.id,
+                        latency_ms=latency,
+                        sources_count=len(rag_sources),
+                    ).model_dump(),
+                )
+
+            except Exception as e:
+                logger.error(f"Stream error: {e}")
+                yield StreamChunk(
+                    event=StreamEventType.ERROR,
+                    data=str(e),
+                    metadata={"error_type": type(e).__name__},
+                )
 
     async def _get_or_create_session(self, db, payload: MessageCreate) -> Session:
         """Get existing session or create new one."""

@@ -110,6 +110,28 @@ class DocumentStatus(str, Enum):
 # endregion DOCUMENT STATUS ENUM
 
 
+# region DOCUMENT TYPE FILE ENUM
+
+
+class DocumentTypeFile(str, Enum):
+    """Document type file categories"""
+
+    PDF = "pdf"
+    "PDF document"
+
+    TXT = "txt"
+    "Text document"
+
+    MD = "md"
+    "Markdown document"
+
+    DOCX = "docx"
+    "Word document"
+
+
+# endregion DOCUMENT TYPE FILE ENUM
+
+
 # region PROMPT TYPE ENUM
 
 
@@ -130,3 +152,23 @@ class PromptType(str, Enum):
 
 
 # endregion PROMPT TYPE ENUM
+
+# region STREAM EVENT TYPE ENUM
+
+
+class StreamEventType(str, Enum):
+    """Types of streaming events."""
+
+    STATUS = "status"
+    "Progress updates: 'Searching documents...', 'Generating...'"
+    SOURCE = "source"
+    "RAG source found"
+    TOKEN = "token"  # nosec B105 - Not a password, streaming event type (comment added to suppress bandit warning)
+    "Individual token from LLM"
+    DONE = "done"
+    "Stream completed"
+    ERROR = "error"
+    "Error occurred"
+
+
+# endregion STREAM EVENT TYPE ENUM

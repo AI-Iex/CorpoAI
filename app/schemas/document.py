@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
 from pydantic import BaseModel, Field, ConfigDict, field_validator
-from app.core.enums import DocumentStatus
+from app.core.enums import DocumentStatus, DocumentTypeFile
 
 
 # region EMBEDDED SCHEMAS
@@ -11,9 +11,23 @@ from app.core.enums import DocumentStatus
 class DocumentMetadata(BaseModel):
     """Document metadata extracted during processing."""
 
+    # Document info
     author: Optional[str] = Field(None, description="Document author")
     title: Optional[str] = Field(None, description="Document title")
-    pages: Optional[int] = Field(None, ge=1, description="Number of pages")
+
+    # Structure info
+    pages: Optional[int] = Field(None, ge=1, description="Number of pages (PDF)")
+    paragraphs: Optional[int] = Field(None, ge=1, description="Number of paragraphs (DOCX)")
+    lines: Optional[int] = Field(None, ge=1, description="Number of lines (TXT/MD)")
+
+    # File info (added during extraction)
+    file_name: Optional[str] = Field(None, description="Original file name")
+    file_type: Optional[str] = Field(None, description="File extension")
+    file_size: Optional[int] = Field(None, ge=0, description="File size in bytes")
+    char_count: Optional[int] = Field(None, ge=0, description="Total character count")
+    encoding: Optional[str] = Field(None, description="Detected encoding (TXT/MD)")
+
+    # Additional metadata
     language: Optional[str] = Field(None, description="Detected language (ISO 639-1)")
     created_date: Optional[datetime] = Field(None, description="Original document creation date")
     modified_date: Optional[datetime] = Field(None, description="Original document modification date")
@@ -25,9 +39,57 @@ class DocumentMetadata(BaseModel):
                 "author": "HR Department",
                 "title": "Employee Handbook 2025",
                 "pages": 45,
+                "file_name": "handbook.pdf",
+                "file_type": "pdf",
+                "file_size": 2048576,
+                "char_count": 125000,
                 "language": "en",
                 "created_date": "2025-01-15T00:00:00Z",
                 "keywords": ["policy", "vacation", "benefits"],
+            }
+        }
+    )
+
+
+class ChunkMetadata(BaseModel):
+    """Metadata for a single text chunk."""
+
+    chunk_index: int = Field(..., ge=0, description="Index of this chunk")
+    chunk_length: int = Field(..., ge=0, description="Length of chunk text in characters")
+
+    # Inherited from document metadata
+    file_name: Optional[str] = Field(None, description="Source file name")
+    file_type: Optional[str] = Field(None, description="Source file type")
+    pages: Optional[int] = Field(None, description="Total pages in source")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "chunk_index": 0,
+                "chunk_length": 512,
+                "file_name": "handbook.pdf",
+                "file_type": "pdf",
+                "pages": 45,
+            }
+        }
+    )
+
+
+class TextChunk(BaseModel):
+    """A single text chunk with metadata."""
+
+    text: str = Field(..., description="Chunk text content")
+    metadata: ChunkMetadata = Field(..., description="Chunk metadata")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "text": "This is the content of the chunk...",
+                "metadata": {
+                    "chunk_index": 0,
+                    "chunk_length": 512,
+                    "file_name": "handbook.pdf",
+                },
             }
         }
     )
@@ -85,18 +147,34 @@ class DocumentResponse(BaseModel):
     id: UUID = Field(..., description="Document UUID")
     user_id: Optional[UUID] = Field(None, description="User ID (if authenticated)")
     filename: str = Field(..., description="Original filename")
-    file_type: str = Field(..., description="File type (pdf, docx, txt, md)")
+    file_type: DocumentTypeFile = Field(..., description="File type (pdf, docx, txt, md)")
     file_size: int = Field(..., ge=0, description="File size in bytes")
     status: DocumentStatus = Field(..., description="Processing status")
     error_message: Optional[str] = Field(None, description="Error message if failed")
     num_chunks: Optional[int] = Field(None, ge=0, description="Number of chunks created")
     chroma_collection: Optional[str] = Field(None, description="ChromaDB collection name")
-    metadata: Optional[DocumentMetadata] = Field(None, description="Document metadata")
+    is_enabled: bool = Field(True, description="Whether document is enabled for RAG")
+    doc_metadata: Optional[DocumentMetadata] = Field(
+        None,
+        description="Document metadata",
+        validation_alias="metadata_",
+    )
     created_at: datetime = Field(..., description="Upload timestamp")
     updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
 
+    @field_validator("doc_metadata", mode="before")
+    @classmethod
+    def validate_metadata(cls, v):
+        """Convert dict to DocumentMetadata if needed."""
+        if v is None or (isinstance(v, dict) and not v):
+            return None
+        if isinstance(v, dict):
+            return DocumentMetadata(**v)
+        return v
+
     model_config = ConfigDict(
         from_attributes=True,
+        populate_by_name=True,
         json_schema_extra={
             "example": {
                 "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -108,7 +186,8 @@ class DocumentResponse(BaseModel):
                 "error_message": None,
                 "num_chunks": 127,
                 "chroma_collection": "documents",
-                "metadata": {
+                "is_enabled": True,
+                "doc_metadata": {
                     "author": "HR Department",
                     "title": "Employee Handbook 2025",
                     "pages": 45,
@@ -150,6 +229,25 @@ class DocumentUploadResponse(BaseModel):
 
 
 # endregion RESPONSE
+
+# region UPDATE
+
+
+class DocumentToggleEnabled(BaseModel):
+    """Schema for enabling/disabling a document for RAG."""
+
+    is_enabled: bool = Field(..., description="Whether the document should be enabled for RAG")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "is_enabled": False,
+            }
+        }
+    )
+
+
+# endregion UPDATE
 
 # region LIST
 

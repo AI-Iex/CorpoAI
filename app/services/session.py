@@ -106,6 +106,10 @@ class SessionService(ISessionService):
             logger.info(f"Getting session {session_id} for user {user.sub if user else 'anonymous'}")
 
             session = await self._get_session_with_access_check(db, session_id, user, "access")
+
+            if not session:
+                raise NotFoundError(f"Session {session_id} not found")
+
             message_count = await self._message_repo.count_by_session(db, session_id)
 
             logger.info(f"Retrieved session {session_id} for user {user.sub if user else 'anonymous'}")

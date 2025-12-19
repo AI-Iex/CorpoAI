@@ -73,7 +73,6 @@ class Settings(BaseSettings):
     # Document Processing
     DOCUMENTS_STORAGE_PATH: str
     MAX_UPLOAD_SIZE_MB: int
-    ALLOWED_EXTENSIONS: str
     CHUNK_SIZE: int
     CHUNK_OVERLAP: int
     SEPARATORS: str = '["\n\n", "\n", " ", ""]'
@@ -143,17 +142,27 @@ class Settings(BaseSettings):
     BATCH_SIZE: int
     MAX_CONCURRENT_REQUESTS: int
 
+    @property
+    def route_prefix(self) -> str:
+        """Returns **API Route** prefix using the configured service version"""
+
+        try:
+
+            v = float(self.APP_VERSION)
+            if v.is_integer():
+                v = int(v)
+
+        except Exception:
+            v = self.APP_VERSION
+
+        return f"/api/v{v}"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
-
-    @property
-    def allowed_extensions_list(self) -> List[str]:
-        """Get allowed file extensions as list"""
-        return [ext.strip() for ext in self.ALLOWED_EXTENSIONS.split(",")]
 
     @property
     def max_upload_size_bytes(self) -> int:

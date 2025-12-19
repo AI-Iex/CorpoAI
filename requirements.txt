@@ -22,6 +22,7 @@ asyncpg
 # AI & ML - LangChain 
 # -----------------------------------------------------------------------------
 langchain-core
+langchain-text-splitters
 langchain-community --no-deps
 langchain --no-deps
 langgraph --no-deps
@@ -42,6 +43,14 @@ ollama
 chromadb
 
 # -----------------------------------------------------------------------------
+# Embeddings & Document Processing
+# -----------------------------------------------------------------------------
+sentence-transformers
+pypdf
+python-docx
+chardet
+
+# -----------------------------------------------------------------------------
 # HTTP Client
 # -----------------------------------------------------------------------------
 httpx
@@ -56,3 +65,4 @@ python-jose[cryptography]
 # -----------------------------------------------------------------------------
 python-dotenv
 tenacity
+aiofiles

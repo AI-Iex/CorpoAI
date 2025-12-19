@@ -4,9 +4,17 @@
     "chat:sendmessage": "Permits sending messages to the LLM.",
     "chat:readhistory": "Allows reading the history of chat sessions.",
     "sessions:create": "Grants the ability to create new chat sessions.",
+    "sessions:list": "Allows listing all chat sessions.",
     "sessions:read": "Allows reading chat session details.",
     "sessions:update": "Grants permission to update existing chat sessions.",
-    "sessions:delete": "Allows deletion of chat sessions."
+    "sessions:delete": "Allows deletion of chat sessions.",
+    "documents:upload": "Allows uploading documents for RAG processing.",
+    "documents:list": "Allows listing all documents.",
+    "documents:read": "Allows reading document details.",
+    "documents:download": "Allows downloading document files.",
+    "documents:update": "Allows updating document settings.",
+    "documents:delete": "Allows deleting documents.",
+    "documents:stats": "Allows viewing document statistics."
 
   }
 }
