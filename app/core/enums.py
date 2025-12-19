@@ -163,7 +163,7 @@ class StreamEventType(str, Enum):
     "Progress updates: 'Searching documents...', 'Generating...'"
     SOURCE = "source"
     "RAG source found"
-    TOKEN = "token"
+    TOKEN = "token"  # nosec B105 - Not a password, streaming event type (comment added to suppress bandit warning)
     "Individual token from LLM"
     DONE = "done"
     "Stream completed"
