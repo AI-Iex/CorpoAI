@@ -10,6 +10,7 @@ from app.schemas.document import (
     DocumentUploadResponse,
     DocumentList,
     DocumentStats,
+    DocumentToggleEnabled,
 )
 from app.schemas.user import User
 from app.core.permissions import requires_permission
@@ -141,6 +142,35 @@ async def get_document(
 
 
 # endregion READ
+
+
+# region UPDATE
+
+
+@router.patch(
+    "/{document_id}/enabled",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Enable or disable a document for RAG",
+    description=(
+        "**Toggle document availability for RAG retrieval.**\n\n"
+        "When disabled, the document's chunks will not be included in "
+        "semantic search results, effectively excluding it from AI responses.\n\n"
+        "The document and its chunks remain stored and can be re-enabled at any time."
+    ),
+    response_description="Updated document details",
+)
+async def toggle_document_enabled(
+    document_id: UUID = Path(..., description="Document UUID"),
+    body: DocumentToggleEnabled = ...,
+    document_service: IDocumentService = Depends(get_document_service),
+    user: Optional[User] = Depends(requires_permission(Permissions.DOCUMENTS_UPDATE)),
+) -> DocumentResponse:
+    """Enable or disable a document for RAG retrieval."""
+    return await document_service.set_enabled(document_id, body.is_enabled)
+
+
+# endregion UPDATE
 
 
 # region DELETE

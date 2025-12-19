@@ -71,6 +71,14 @@ class IDocumentRepository(ABC):
         """Count documents with optional status filter."""
         pass
 
+    @abstractmethod
+    async def get_enabled_ids(
+        self,
+        db: AsyncSession,
+    ) -> List[UUID]:
+        """Get IDs of all enabled documents for RAG."""
+        pass
+
     # endregion READ
 
     # region UPDATE
@@ -95,6 +103,16 @@ class IDocumentRepository(ABC):
         metadata: Dict[str, Any],
     ) -> Optional[Document]:
         """Update document metadata."""
+        pass
+
+    @abstractmethod
+    async def update_enabled(
+        self,
+        db: AsyncSession,
+        document_id: UUID,
+        is_enabled: bool,
+    ) -> Optional[Document]:
+        """Update document enabled status for RAG."""
         pass
 
     # endregion UPDATE

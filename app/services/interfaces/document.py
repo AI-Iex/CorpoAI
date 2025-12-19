@@ -90,3 +90,18 @@ class IDocumentService(ABC):
         pass
 
     # endregion DELETE
+
+    # region ENABLE/DISABLE
+
+    @abstractmethod
+    async def set_enabled(
+        self,
+        document_id: UUID,
+        is_enabled: bool,
+    ) -> "DocumentResponse":
+        """
+        Enable or disable a document for RAG retrieval.
+        """
+        pass
+
+    # endregion ENABLE/DISABLE

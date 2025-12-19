@@ -3,8 +3,10 @@ from typing import List, Dict, Any, Optional
 from uuid import UUID
 from app.core.config import settings
 from app.repositories.vector_store import VectorStoreRepository
+from app.repositories.interfaces.document import IDocumentRepository
 from app.services.interfaces.retrieval import IRetrievalService
 from app.clients.embedding_client_manager import get_embedding_client
+from app.db.unit_of_work import UnitOfWorkFactory
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,8 @@ class RetrievalService(IRetrievalService):
     def __init__(
         self,
         vector_store: VectorStoreRepository = None,
+        document_repo: IDocumentRepository = None,
+        uow_factory: UnitOfWorkFactory = None,
         top_k: int = None,
         min_relevance_score: float = None,
     ):
@@ -24,6 +28,8 @@ class RetrievalService(IRetrievalService):
         Initialize retrieval service.
         """
         self._vector_store = vector_store or VectorStoreRepository()
+        self._document_repo = document_repo
+        self._uow = uow_factory
         self._top_k = top_k or settings.TOP_K_RETRIEVAL
         self._min_score = min_relevance_score or settings.MIN_RELEVANCE_SCORE
 
@@ -38,6 +44,7 @@ class RetrievalService(IRetrievalService):
         top_k: int = None,
         min_score: float = None,
         document_ids: Optional[List[UUID]] = None,
+        filter_enabled: bool = True,
     ) -> List[Dict[str, Any]]:
         """
         Search for relevant document chunks.
@@ -46,14 +53,32 @@ class RetrievalService(IRetrievalService):
         min_score = min_score or self._min_score
 
         try:
+            # Get enabled document IDs if filtering is requested
+            effective_doc_ids = document_ids
+            if filter_enabled and self._document_repo and self._uow:
+                async with self._uow() as db:
+                    enabled_ids = await self._document_repo.get_enabled_ids(db)
+
+                if document_ids:
+                    # Intersect with provided document_ids
+                    enabled_set = set(enabled_ids)
+                    effective_doc_ids = [doc_id for doc_id in document_ids if doc_id in enabled_set]
+                else:
+                    effective_doc_ids = enabled_ids
+
+                # If no enabled documents, return empty results
+                if not effective_doc_ids:
+                    logger.debug("No enabled documents found for RAG search")
+                    return []
+
             # Generate query embedding
             embedding_client = get_embedding_client()
             query_result = await embedding_client.embed_query(query)
 
             # Build where filter if document IDs provided
             where_filter = None
-            if document_ids:
-                doc_ids_str = [str(doc_id) for doc_id in document_ids]
+            if effective_doc_ids:
+                doc_ids_str = [str(doc_id) for doc_id in effective_doc_ids]
                 where_filter = {"document_id": {"$in": doc_ids_str}}
 
             # Query vector store (returns raw ChromaDB results)

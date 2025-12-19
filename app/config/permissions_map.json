@@ -11,6 +11,7 @@
     "documents:upload": "Allows uploading documents for RAG processing.",
     "documents:list": "Allows listing all documents.",
     "documents:read": "Allows reading document details.",
+    "documents:update": "Allows updating document settings.",
     "documents:delete": "Allows deleting documents.",
     "documents:stats": "Allows viewing document statistics."
 

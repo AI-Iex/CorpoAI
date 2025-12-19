@@ -135,6 +135,19 @@ class DocumentRepository(IDocumentRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to count documents: {e}") from e
 
+    async def get_enabled_ids(
+        self,
+        db: AsyncSession,
+    ) -> List[UUID]:
+        """Get IDs of all enabled documents for RAG."""
+        try:
+            query = select(Document.id).where(Document.is_enabled).where(Document.status == DocumentStatus.COMPLETED)
+            result = await db.execute(query)
+            return list(result.scalars().all())
+
+        except Exception as e:
+            raise RepositoryError(f"Failed to get enabled document IDs: {e}") from e
+
     # endregion READ
 
     # region UPDATE
@@ -194,6 +207,27 @@ class DocumentRepository(IDocumentRepository):
         except Exception as e:
             raise RepositoryError(f"Failed to update document metadata: {e}") from e
 
+    async def update_enabled(
+        self,
+        db: AsyncSession,
+        document_id: UUID,
+        is_enabled: bool,
+    ) -> Optional[Document]:
+        """Update document enabled status for RAG."""
+        try:
+            stmt = update(Document).where(Document.id == document_id).values(is_enabled=is_enabled)
+            result = await db.execute(stmt)
+            await db.flush()
+
+            if result.rowcount == 0:
+                return None
+
+            updated_doc = await self.get_by_id(db, document_id)
+            return updated_doc
+
+        except Exception as e:
+            raise RepositoryError(f"Failed to update document enabled status: {e}") from e
+
     # endregion UPDATE
 
     # region DELETE
@@ -210,8 +244,6 @@ class DocumentRepository(IDocumentRepository):
             await db.flush()
 
             deleted = result.rowcount > 0
-            if deleted:
-                logger.debug(f"Deleted document: {document_id}")
             return deleted
 
         except Exception as e:

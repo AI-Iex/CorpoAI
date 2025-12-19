@@ -88,9 +88,15 @@ def get_file_storage() -> IFileStorage:
 
 def get_retrieval_service(
     vector_store: IVectorStoreRepository = Depends(get_vector_store_repository),
+    document_repo: IDocumentRepository = Depends(get_document_repository),
+    uow_factory: UnitOfWorkFactory = Depends(get_uow_factory),
 ) -> IRetrievalService:
     """Get retrieval service instance."""
-    return RetrievalService(vector_store=vector_store)
+    return RetrievalService(
+        vector_store=vector_store,
+        document_repo=document_repo,
+        uow_factory=uow_factory,
+    )
 
 
 def get_document_service(
@@ -115,7 +121,11 @@ def get_document_service(
 def get_optional_retrieval_service() -> IRetrievalService | None:
     """Get retrieval service if RAG is enabled, None otherwise."""
     if settings.ENABLE_RAG:
-        return RetrievalService(vector_store=VectorStoreRepository())
+        return RetrievalService(
+            vector_store=VectorStoreRepository(),
+            document_repo=DocumentRepository(),
+            uow_factory=get_uow_factory(),
+        )
     return None
 
 
@@ -162,7 +172,11 @@ def create_retrieval_service() -> IRetrievalService:
     """
     Create retrieval service instance.
     """
-    return RetrievalService(vector_store=get_vector_store_repository())
+    return RetrievalService(
+        vector_store=get_vector_store_repository(),
+        document_repo=get_document_repository(),
+        uow_factory=get_uow_factory(),
+    )
 
 
 # endregion FACTORIES

@@ -153,6 +153,7 @@ class DocumentResponse(BaseModel):
     error_message: Optional[str] = Field(None, description="Error message if failed")
     num_chunks: Optional[int] = Field(None, ge=0, description="Number of chunks created")
     chroma_collection: Optional[str] = Field(None, description="ChromaDB collection name")
+    is_enabled: bool = Field(True, description="Whether document is enabled for RAG")
     doc_metadata: Optional[DocumentMetadata] = Field(
         None,
         description="Document metadata",
@@ -185,6 +186,7 @@ class DocumentResponse(BaseModel):
                 "error_message": None,
                 "num_chunks": 127,
                 "chroma_collection": "documents",
+                "is_enabled": True,
                 "doc_metadata": {
                     "author": "HR Department",
                     "title": "Employee Handbook 2025",
@@ -227,6 +229,25 @@ class DocumentUploadResponse(BaseModel):
 
 
 # endregion RESPONSE
+
+# region UPDATE
+
+
+class DocumentToggleEnabled(BaseModel):
+    """Schema for enabling/disabling a document for RAG."""
+
+    is_enabled: bool = Field(..., description="Whether the document should be enabled for RAG")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "is_enabled": False,
+            }
+        }
+    )
+
+
+# endregion UPDATE
 
 # region LIST
 

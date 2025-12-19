@@ -295,6 +295,36 @@ class DocumentService(IDocumentService):
 
     # endregion READ
 
+    # region ENABLE/DISABLE
+
+    async def set_enabled(
+        self,
+        document_id: UUID,
+        is_enabled: bool,
+    ) -> DocumentResponse:
+        """
+        Enable or disable a document for RAG retrieval.
+        """
+        async with self._uow() as db:
+            # Verify document exists
+            document = await self._document_repo.get_by_id(db, document_id)
+            if not document:
+                raise DocumentNotFoundError(str(document_id))
+
+            # Update enabled status
+            updated_document = await self._document_repo.update_enabled(
+                db=db,
+                document_id=document_id,
+                is_enabled=is_enabled,
+            )
+
+            action = "enabled" if is_enabled else "disabled"
+            logger.info(f"Document {document_id} {action} for RAG")
+
+            return DocumentResponse.model_validate(updated_document)
+
+    # endregion ENABLE/DISABLE
+
     # region DELETE
 
     async def delete_document(

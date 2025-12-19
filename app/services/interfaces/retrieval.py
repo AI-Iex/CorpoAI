@@ -13,6 +13,7 @@ class IRetrievalService(ABC):
         top_k: int = None,
         min_score: float = None,
         document_ids: Optional[List[UUID]] = None,
+        filter_enabled: bool = True,
     ) -> List[Dict[str, Any]]:
         """
         Search for relevant document chunks.

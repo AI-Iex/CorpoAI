@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Integer, DateTime, Enum, Index
+from sqlalchemy import Column, String, Text, Integer, DateTime, Enum, Index, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 import uuid
@@ -23,6 +23,9 @@ class Document(Base):
     # Processing status
     status = Column(Enum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
     error_message = Column(Text, nullable=True)
+
+    # RAG availability
+    is_enabled = Column(Boolean, default=True, nullable=False)
 
     # Chunk info (for sync with ChromaDB)
     num_chunks = Column(Integer, nullable=True)
