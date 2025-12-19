@@ -1,10 +1,12 @@
 import logging
+from pathlib import Path as FilePath
 from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, status, Query, Path, UploadFile, File, BackgroundTasks
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
 from app.dependencies.services import get_document_service
 from app.services.interfaces.document import IDocumentService
+from app.core.config import settings
 from app.schemas.document import (
     DocumentResponse,
     DocumentUploadResponse,
@@ -139,6 +141,32 @@ async def get_document(
 ) -> DocumentResponse:
     """Get a document by ID."""
     return await document_service.get_document(document_id)
+
+
+@router.get(
+    "/{document_id}/download",
+    status_code=status.HTTP_200_OK,
+    summary="Download a document",
+    description=("**Download the original document file.**\n\n" "Returns the original uploaded file for download."),
+    response_class=FileResponse,
+)
+async def download_document(
+    document_id: UUID = Path(..., description="Document UUID"),
+    document_service: IDocumentService = Depends(get_document_service),
+    user: Optional[User] = Depends(requires_permission(Permissions.DOCUMENTS_DOWNLOAD)),
+) -> FileResponse:
+    """Download a document file."""
+
+    # Get file info from service
+    document_file_info = await document_service.get_document(document_id)
+
+    # Build full file path
+    file_path = FilePath(settings.DOCUMENTS_STORAGE_PATH) / document_file_info.file_path
+
+    return FileResponse(
+        path=file_path,
+        filename=document_file_info.filename,
+    )
 
 
 # endregion READ
