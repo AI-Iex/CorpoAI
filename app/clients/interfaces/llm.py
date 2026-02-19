@@ -1,21 +1,24 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncIterator, List, Union
+from typing import Any, AsyncIterator, List, Union, TYPE_CHECKING
 from app.core.enums import PromptType
 from app.schemas.context import LLMMessage, LLMResponse
 
+if TYPE_CHECKING:
+    from app.tools.schemas import ToolDefinition
 
 MessageType = Union[LLMMessage, dict]
 
 
 class ILLMClient(ABC):
     """
-    Interface for LLM clients (Ollama, OpenAI, Anthropic, etc.).
+    Interface for LLM clients (Ollama, OpenAI, Anthropic, etc.). Qwen 
     """
 
     @abstractmethod
     async def chat(
         self,
         messages: List[MessageType],
+        tools: List["ToolDefinition"] | None = None,
         thinking: bool | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
@@ -23,6 +26,17 @@ class ILLMClient(ABC):
     ) -> LLMResponse:
         """
         Send a chat conversation and get a response.
+
+        Args:
+            messages: Conversation messages
+            tools: Tool definitions available for this request
+            thinking: Enable thinking/reasoning mode
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens in response
+            **kwargs: Additional provider-specific options
+
+        Returns:
+            LLMResponse with content and/or tool_calls
         """
         pass
 
@@ -30,6 +44,7 @@ class ILLMClient(ABC):
     async def chat_stream(
         self,
         messages: List[MessageType],
+        tools: List["ToolDefinition"] | None = None,
         thinking: bool | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
@@ -37,6 +52,8 @@ class ILLMClient(ABC):
     ) -> AsyncIterator[str]:
         """
         Send a chat conversation and get a response with streaming.
+
+        Note: Tool calls are not supported in streaming mode.
         """
         pass
 

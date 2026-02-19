@@ -13,10 +13,12 @@ class LLMMessage(BaseModel):
     A message in LLM format.
 
     Used for communication with the LLM client.
+    Supports tool responses with tool_call_id for proper tool result handling.
     """
 
-    role: MessageRoleTypes = Field(..., description="Message role: system, user, assistant")
+    role: MessageRoleTypes = Field(..., description="Message role: system, user, assistant, tool")
     content: str = Field(..., description="Message content")
+    tool_call_id: Optional[str] = Field(None, description="Tool call ID (required for tool responses)")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -42,6 +44,11 @@ class LLMMessage(BaseModel):
         """Create an assistant message."""
         return cls(role=MessageRoleTypes.ASSISTANT, content=content)
 
+    @classmethod
+    def tool(cls, content: str, tool_call_id: str) -> "LLMMessage":
+        """Create a tool response message."""
+        return cls(role=MessageRoleTypes.TOOL, content=content, tool_call_id=tool_call_id)
+
 
 # endregion LLM MESSAGE
 
@@ -49,22 +56,60 @@ class LLMMessage(BaseModel):
 # region LLM RESPONSE
 
 
-class LLMResponse(BaseModel):
-    """Response from LLM chat or generation."""
+class LLMToolCall(BaseModel):
+    """Tool call from LLM response."""
 
-    content: str = Field(..., description="Generated content from LLM")
-    tokens_used: Optional[int] = Field(None, description="Total tokens used (prompt + completion)")
-    model: Optional[str] = Field(None, description="Model used for generation")
+    id: Optional[str] = Field(None, description="Tool call ID")
+    name: str = Field(..., description="Tool name to call")
+    arguments: dict = Field(default_factory=dict, description="Tool arguments")
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "content": "The company's vacation policy allows...",
-                "tokens_used": 150,
-                "model": "llama3.1:8b",
+                "id": "call_abc123",
+                "name": "get_weather",
+                "arguments": {"city": "Madrid"},
             }
         }
     )
+
+
+class LLMResponse(BaseModel):
+    """Response from LLM chat or generation."""
+
+    content: str = Field("", description="Generated content from LLM")
+    tokens_used: Optional[int] = Field(None, description="Total tokens used (prompt + completion)")
+    model: Optional[str] = Field(None, description="Model used for generation")
+    tool_calls: Optional[List[LLMToolCall]] = Field(None, description="Tool calls requested by LLM")
+    finish_reason: Optional[str] = Field(None, description="Reason for completion (stop, tool_calls, etc.)")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "content": "The company's vacation policy allows...",
+                    "tokens_used": 150,
+                    "model": "llama3.1:8b",
+                    "tool_calls": None,
+                    "finish_reason": "stop",
+                },
+                {
+                    "content": "",
+                    "tokens_used": 50,
+                    "model": "llama3.1:8b",
+                    "tool_calls": [
+                        {"id": "call_1", "name": "get_weather", "arguments": {"city": "Madrid"}}
+                    ],
+                    "finish_reason": "tool_calls",
+                },
+            ]
+        }
+    )
+
+    @property
+    def has_tool_calls(self) -> bool:
+        """Check if response contains tool calls."""
+        return bool(self.tool_calls)
 
 
 # endregion LLM RESPONSE

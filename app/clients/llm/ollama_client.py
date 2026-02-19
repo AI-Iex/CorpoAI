@@ -1,12 +1,16 @@
+import json
 import logging
-from typing import Any, AsyncIterator, List
+from typing import Any, AsyncIterator, List, TYPE_CHECKING
 import ollama
 from app.clients.interfaces.llm import ILLMClient, LLMResponse, MessageType
 from app.core.config import settings
 from app.core.enums import PromptType, MessageRoleTypes
 from app.core.exceptions import LLMError
 from app.core.prompts import PromptLoader, get_prompt_loader
-from app.schemas.context import LLMMessage
+from app.schemas.context import LLMMessage, LLMToolCall
+
+if TYPE_CHECKING:
+    from app.tools.schemas import ToolDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +66,19 @@ class OllamaClient(ILLMClient):
         return self._prompt_loader.get(prompt_type)
 
     def _normalize_messages(self, messages: List[MessageType]) -> List[dict]:
-        """Convert LLMMessage objects to dicts for Ollama API."""
+        """Convert LLMMessage objects to dicts for Ollama API.
+        
+        Handles tool response messages properly by including tool_call_id
+        which is required by Ollama for tool result handling.
+        """
         result = []
         for msg in messages:
             if isinstance(msg, LLMMessage):
-                result.append({"role": msg.role.value, "content": msg.content})
+                msg_dict = {"role": msg.role.value, "content": msg.content}
+                # Include tool_call_id for tool responses (required by Ollama)
+                if msg.tool_call_id:
+                    msg_dict["tool_call_id"] = msg.tool_call_id
+                result.append(msg_dict)
             else:
                 result.append(msg)
         return result
@@ -95,9 +107,71 @@ class OllamaClient(ILLMClient):
         # Prepend main system message
         return [{"role": MessageRoleTypes.SYSTEM.value, "content": prompt}] + normalized
 
+    def _convert_tools_to_ollama(self, tools: List["ToolDefinition"]) -> List[dict]:
+        """
+        Convert internal ToolDefinition format to Ollama's tool format.
+
+        Ollama expects:
+        {
+            "type": "function",
+            "function": {
+                "name": "...",
+                "description": "...",
+                "parameters": {...}
+            }
+        }
+        """
+        if not tools:
+            return None
+
+        ollama_tools = []
+        for tool in tools:
+            ollama_tools.append({
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.to_json_schema(),
+                },
+            })
+        return ollama_tools
+
+    def _parse_tool_calls(self, message: dict) -> List[LLMToolCall] | None:
+        """
+        Parse tool calls from Ollama response message.
+
+        Ollama returns tool_calls as:
+        [{"function": {"name": "...", "arguments": {...}}}]
+        """
+        tool_calls_raw = message.get("tool_calls")
+        if not tool_calls_raw:
+            return None
+
+        tool_calls = []
+        for i, tc in enumerate(tool_calls_raw):
+            func = tc.get("function", {})
+            name = func.get("name", "")
+            arguments = func.get("arguments", {})
+
+            # Arguments might be a string (JSON) or dict
+            if isinstance(arguments, str):
+                try:
+                    arguments = json.loads(arguments)
+                except json.JSONDecodeError:
+                    arguments = {}
+
+            tool_calls.append(LLMToolCall(
+                id=f"call_{i}",  # Ollama doesn't provide IDs, generate one
+                name=name,
+                arguments=arguments,
+            ))
+
+        return tool_calls if tool_calls else None
+
     async def chat(
         self,
         messages: List[MessageType],
+        tools: List["ToolDefinition"] | None = None,
         thinking: bool | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
@@ -106,13 +180,18 @@ class OllamaClient(ILLMClient):
     ) -> LLMResponse:
         """
         Generate a chat response to a message and history.
+
+        If tools are provided and the LLM decides to use one,
+        the response will contain tool_calls instead of content.
         """
         try:
             final_messages = self._build_messages(messages, system_prompt)
+            ollama_tools = self._convert_tools_to_ollama(tools) if tools else None
 
             response = await self._client.chat(
                 model=self._model,
                 messages=final_messages,
+                tools=ollama_tools,
                 options={
                     "temperature": temperature or self._temperature,
                     "num_predict": max_tokens or self._max_tokens,
@@ -128,16 +207,19 @@ class OllamaClient(ILLMClient):
             if "eval_count" in response:
                 tokens_used = response.get("eval_count", 0) + response.get("prompt_eval_count", 0)
 
-            # Ensure content is not empty
-            content = response["message"]["content"].strip()
+            message = response.get("message", {})
+            content = message.get("content", "").strip()
+            tool_calls = self._parse_tool_calls(message)
 
-            if not content:
-                raise ValueError("Ollama chat response content is empty.")
+            # Determine finish reason
+            finish_reason = "tool_calls" if tool_calls else "stop"
 
             return LLMResponse(
                 content=content,
                 tokens_used=tokens_used,
                 model=self._model,
+                tool_calls=tool_calls,
+                finish_reason=finish_reason,
             )
 
         except ollama.ResponseError as e:
@@ -152,6 +234,7 @@ class OllamaClient(ILLMClient):
     async def chat_stream(
         self,
         messages: List[MessageType],
+        tools: List["ToolDefinition"] | None = None,
         thinking: bool | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
@@ -160,9 +243,14 @@ class OllamaClient(ILLMClient):
     ) -> AsyncIterator[str]:
         """
         Generate a chat response with streaming.
+
+        Note: Tool calling is not supported in streaming mode.
+        If tools need to be used, use chat() instead.
         """
         try:
             final_messages = self._build_messages(messages, system_prompt)
+            # Note: We don't pass tools in streaming mode as it complicates handling
+            # Tool calls require non-streaming to get the full tool call structure
 
             stream = await self._client.chat(
                 model=self._model,

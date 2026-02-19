@@ -16,6 +16,7 @@ from app.services.document import DocumentService
 from app.services.retrieval import RetrievalService
 from app.services.chunking import ChunkingService
 from app.services.file_storage import LocalFileStorage
+from app.services.tools import ToolsService, get_tools_service
 
 from app.services.interfaces.session import ISessionService
 from app.services.interfaces.chat import IChatService
@@ -23,6 +24,7 @@ from app.services.interfaces.document import IDocumentService
 from app.services.interfaces.retrieval import IRetrievalService
 from app.services.interfaces.chunking import IChunkingService
 from app.services.interfaces.file_storage import IFileStorage
+from app.services.interfaces.tools import IToolsService
 
 from app.clients.interfaces.llm import ILLMClient
 from app.clients.interfaces.context import IContextManager
@@ -129,6 +131,13 @@ def get_optional_retrieval_service() -> IRetrievalService | None:
     return None
 
 
+def get_optional_tools_service() -> IToolsService | None:
+    """Get tools service if tools are enabled, None otherwise."""
+    if settings.ENABLE_TOOLS:
+        return get_tools_service()
+    return None
+
+
 def get_chat_service(
     session_repo: ISessionRepository = Depends(get_session_repository),
     message_repo: IMessageRepository = Depends(get_message_repository),
@@ -136,6 +145,7 @@ def get_chat_service(
     context_manager: IContextManager = Depends(get_context_manager),
     uow_factory: UnitOfWorkFactory = Depends(get_uow_factory),
     retrieval_service: IRetrievalService | None = Depends(get_optional_retrieval_service),
+    tools_service: IToolsService | None = Depends(get_optional_tools_service),
 ) -> IChatService:
     """Get chat service instance."""
     return ChatService(
@@ -145,6 +155,7 @@ def get_chat_service(
         context_manager=context_manager,
         uow_factory=uow_factory,
         retrieval_service=retrieval_service,
+        tools_service=tools_service,
     )
 
 

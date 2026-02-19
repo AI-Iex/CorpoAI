@@ -66,3 +66,4 @@ python-jose[cryptography]
 python-dotenv
 tenacity
 aiofiles
+tzdata  # Timezone data for Windows compatibility

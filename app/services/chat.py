@@ -7,6 +7,7 @@ from app.repositories.interfaces.session import ISessionRepository
 from app.repositories.interfaces.message import IMessageRepository
 from app.services.interfaces.chat import IChatService
 from app.services.retrieval import RetrievalService
+from app.services.interfaces.tools import IToolsService
 from app.clients.interfaces.llm import ILLMClient
 from app.clients.interfaces.context import IContextManager
 from app.db.unit_of_work import UnitOfWorkFactory
@@ -18,6 +19,8 @@ from app.schemas.message import (
     AssistantMessageResponse,
 )
 from app.schemas.streaming import StreamChunk, StreamDoneMetadata
+from app.schemas.context import LLMMessage
+from app.tools.schemas import ToolCall
 from app.core.enums import StreamEventType
 from app.models.session import Session
 from app.models.message import Message
@@ -28,6 +31,7 @@ from app.core.exceptions import NotFoundError
 logger = logging.getLogger(__name__)
 
 DEFAULT_SESSION_TITLE = "New Chat"
+MAX_TOOL_ITERATIONS = 5  # Prevent infinite tool loops
 
 
 class ChatService(IChatService):
@@ -41,6 +45,7 @@ class ChatService(IChatService):
         context_manager: IContextManager,
         uow_factory: UnitOfWorkFactory,
         retrieval_service: RetrievalService = None,
+        tools_service: IToolsService = None,
     ):
         self._sessions = session_repo
         self._messages = message_repo
@@ -48,12 +53,16 @@ class ChatService(IChatService):
         self._context = context_manager
         self._uow = uow_factory
         self._retrieval = retrieval_service
+        self._tools = tools_service
 
     # region SEND MESSAGE
 
     async def send_message(self, payload: MessageCreate) -> ChatResponse:
         """
         Send a message and get AI response.
+
+        Supports tool calling: if the LLM wants to use a tool,
+        we execute it and continue the conversation.
         """
 
         start = time.perf_counter()
@@ -99,10 +108,50 @@ class ChatService(IChatService):
                     db, session.id, context.new_summary, context.summary_up_to_message_id
                 )
 
-            # Get LLM response
-            response = await self._llm.chat(context.messages, thinking=payload.thinking)
+            # Get available tools
+            tools = await self._tools.get_tools() if self._tools and settings.ENABLE_TOOLS else None
 
-            # Save assistant message
+            # Tool calling loop
+            messages = context.messages
+            tool_calls_made = []
+            iterations = 0
+
+            while iterations < MAX_TOOL_ITERATIONS:
+                iterations += 1
+
+                # Get LLM response
+                response = await self._llm.chat(messages, tools=tools, thinking=payload.thinking)
+
+                # If no tool calls, we're done
+                if not response.has_tool_calls:
+                    break
+
+                # Execute tool calls
+                for tc in response.tool_calls:
+                    tool_call = ToolCall(
+                        id=tc.id,
+                        name=tc.name,
+                        arguments=tc.arguments,
+                    )
+                    logger.info(f"Executing tool: {tc.name} with args: {tc.arguments}")
+
+                    result = await self._tools.execute(tool_call)
+                    tool_calls_made.append({
+                        "name": tc.name,
+                        "arguments": tc.arguments,
+                        "result": result.result if result.success else result.error,
+                        "success": result.success,
+                    })
+
+                    # Add tool result using proper tool role (not user message)
+                    # This tells the LLM that the tool has already been executed
+                    tool_response = result.to_message_content()
+                    messages.append(LLMMessage.tool(
+                        content=tool_response,
+                        tool_call_id=tc.id or f"tool_{tc.name}_{iterations}",
+                    ))
+
+            # Save assistant message with final response and tool calls
             latency = (time.perf_counter() - start) * 1000
             assistant_msg = await self._messages.create(
                 db,
@@ -110,6 +159,7 @@ class ChatService(IChatService):
                 MessageRoleTypes.ASSISTANT,
                 response.content,
                 sources=rag_sources,
+                tool_calls=tool_calls_made if tool_calls_made else None,
                 tokens_used=response.tokens_used,
                 latency_ms=latency,
             )
@@ -120,7 +170,8 @@ class ChatService(IChatService):
                 await self._sessions.update_title(db, session.id, title)
 
             logger.info(
-                f"Chat: session={session.id}, latency={latency:.0f}ms, tokens={response.tokens_used}, rag_sources={len(rag_sources) if rag_sources else 0}"
+                f"Chat: session={session.id}, latency={latency:.0f}ms, tokens={response.tokens_used}, "
+                f"rag_sources={len(rag_sources) if rag_sources else 0}, tool_calls={len(tool_calls_made)}"
             )
 
             return ChatResponse(
@@ -132,6 +183,9 @@ class ChatService(IChatService):
     async def send_message_stream(self, payload: MessageCreate) -> AsyncIterator[StreamChunk]:
         """
         Send a message and stream the AI response.
+
+        For tool-enabled requests, tools are executed first (non-streaming),
+        then the final response is streamed.
         """
         start = time.perf_counter()
 
@@ -199,12 +253,81 @@ class ChatService(IChatService):
                         db, session.id, context.new_summary, context.summary_up_to_message_id
                     )
 
+                # Get available tools
+                tools = await self._tools.get_tools() if self._tools and settings.ENABLE_TOOLS else None
+                messages = context.messages
+                tool_calls_made = []
+
+                # Tool calling loop (non-streaming, tools first)
+                if tools:
+                    iterations = 0
+                    while iterations < MAX_TOOL_ITERATIONS:
+                        iterations += 1
+
+                        # Check if LLM wants to use tools (non-streaming call)
+                        response = await self._llm.chat(messages, tools=tools, thinking=payload.thinking)
+
+                        if not response.has_tool_calls:
+                            # No tool calls, proceed to streaming the final response
+                            break
+
+                        # Execute tool calls
+                        for tc in response.tool_calls:
+                            # Emit tool call event
+                            yield StreamChunk(
+                                event=StreamEventType.TOOL_CALL,
+                                data=tc.name,
+                                metadata={
+                                    "tool_name": tc.name,
+                                    "arguments": tc.arguments,
+                                },
+                            )
+
+                            yield StreamChunk(
+                                event=StreamEventType.STATUS,
+                                data=f"Using tool: {tc.name}..."
+                            )
+
+                            tool_call = ToolCall(
+                                id=tc.id,
+                                name=tc.name,
+                                arguments=tc.arguments,
+                            )
+                            logger.info(f"Executing tool: {tc.name} with args: {tc.arguments}")
+
+                            result = await self._tools.execute(tool_call)
+                            tool_calls_made.append({
+                                "name": tc.name,
+                                "arguments": tc.arguments,
+                                "result": result.result if result.success else result.error,
+                                "success": result.success,
+                            })
+
+                            # Emit tool result event
+                            yield StreamChunk(
+                                event=StreamEventType.TOOL_RESULT,
+                                data=tc.name,
+                                metadata={
+                                    "tool_name": tc.name,
+                                    "success": result.success,
+                                    "result": result.result if result.success else None,
+                                    "error": result.error if not result.success else None,
+                                },
+                            )
+
+                            # Add tool result using proper tool role (not user message)
+                            # This tells the LLM that the tool has already been executed
+                            messages.append(LLMMessage.tool(
+                                content=result.to_message_content(),
+                                tool_call_id=tc.id or f"tool_{tc.name}_{iterations}",
+                            ))
+
                 # Status: Generating
                 yield StreamChunk(event=StreamEventType.STATUS, data="Generating response...")
 
-                # Stream LLM response
+                # Stream LLM response (without tools to get pure streaming)
                 full_response = ""
-                async for token in self._llm.chat_stream(context.messages, thinking=payload.thinking):
+                async for token in self._llm.chat_stream(messages, thinking=payload.thinking):
                     if token:  # Skip empty tokens
                         full_response += token
                         yield StreamChunk(event=StreamEventType.TOKEN, data=token)
@@ -217,6 +340,7 @@ class ChatService(IChatService):
                     MessageRoleTypes.ASSISTANT,
                     full_response,
                     sources=rag_sources if rag_sources else None,
+                    tool_calls=tool_calls_made if tool_calls_made else None,
                     latency_ms=latency,
                 )
 
@@ -226,7 +350,8 @@ class ChatService(IChatService):
                     await self._sessions.update_title(db, session.id, title)
 
                 logger.info(
-                    f"Chat stream: session={session.id}, latency={latency:.0f}ms, rag_sources={len(rag_sources)}"
+                    f"Chat stream: session={session.id}, latency={latency:.0f}ms, "
+                    f"rag_sources={len(rag_sources)}, tool_calls={len(tool_calls_made)}"
                 )
 
                 # Done event with metadata

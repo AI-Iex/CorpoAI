@@ -58,7 +58,7 @@ def get_iam_client() -> IIAMClient:
     return _iam_client
 
 
-def close_iam_client() -> None:
+async def close_iam_client() -> None:
     """
     Close and cleanup IAM client resources.
     """
@@ -66,7 +66,7 @@ def close_iam_client() -> None:
 
     if _iam_client is not None:
         logger.debug("Closing IAM client")
-        _iam_client.close()
+        await _iam_client.close()
         _iam_client = None
         logger.debug("IAM client closed successfully")
     else:

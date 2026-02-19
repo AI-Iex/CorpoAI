@@ -51,6 +51,17 @@ from app.schemas.context import (
     UnsummarizedMessages,
 )
 
+# Tool schemas (API layer)
+from app.schemas.tool import (
+    ToolParameterSchema,
+    ToolParametersSchema,
+    ToolCreate,
+    ToolUpdate,
+    ToolSetEnabled,
+    ToolResponse,
+    ToolListResponse,
+)
+
 
 __all__ = [
     # Session
@@ -90,4 +101,12 @@ __all__ = [
     "ContextBudget",
     "ContextResult",
     "UnsummarizedMessages",
+    # Tool
+    "ToolParameterSchema",
+    "ToolParametersSchema",
+    "ToolCreate",
+    "ToolUpdate",
+    "ToolSetEnabled",
+    "ToolResponse",
+    "ToolListResponse",
 ]

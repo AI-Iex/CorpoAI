@@ -148,3 +148,37 @@ class NotImplementedError(BaseAppException):
 
     def __init__(self, message: str = "Not implemented error"):
         super().__init__(message, status_code=501)
+
+
+# region TOOL EXCEPTIONS
+
+
+class ToolError(BaseAppException):
+    """Base exception for tool-related errors."""
+
+    def __init__(self, message: str = "Tool error", status_code: int = 500):
+        super().__init__(message, status_code=status_code)
+
+
+class ToolNotFoundError(ToolError):
+    """Exception raised when a tool is not found."""
+
+    def __init__(self, message: str = "Tool not found"):
+        super().__init__(message, status_code=404)
+
+
+class ToolExecutionError(ToolError):
+    """Exception raised when tool execution fails."""
+
+    def __init__(self, message: str = "Tool execution failed"):
+        super().__init__(message, status_code=500)
+
+
+class PermissionDeniedError(ToolError):
+    """Exception raised when user lacks permission to use a tool."""
+
+    def __init__(self, message: str = "Permission denied for tool"):
+        super().__init__(message, status_code=403)
+
+
+# endregion TOOL EXCEPTIONS

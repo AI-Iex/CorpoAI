@@ -15,6 +15,9 @@ class MessageRoleTypes(str, Enum):
     SYSTEM = "system"
     "System message"
 
+    TOOL = "tool"
+    "Tool response message"
+
 
 # endregion MESSAGE ROLES ENUM
 
@@ -165,6 +168,10 @@ class StreamEventType(str, Enum):
     "RAG source found"
     TOKEN = "token"  # nosec B105 - Not a password, streaming event type (comment added to suppress bandit warning)
     "Individual token from LLM"
+    TOOL_CALL = "tool_call"
+    "LLM wants to call a tool"
+    TOOL_RESULT = "tool_result"
+    "Result from tool execution"
     DONE = "done"
     "Stream completed"
     ERROR = "error"

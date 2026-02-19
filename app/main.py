@@ -7,6 +7,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.info import router as info_router
 from app.api.routes.document import router as document_router
+from app.api.routes.tools import router as tools_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging, configure_third_party_loggers
 from app.db.chroma_client import close_chroma, init_chroma
@@ -23,6 +24,8 @@ from app.clients.embedding_client_manager import (
 from app.clients.iam_client_manager import init_iam_client, close_iam_client
 from app.middleware.exception_handler import exception_handler_middleware
 from app.middleware.logging import logging_middleware
+from app.services.tools import initialize_tools_service
+from app.db.unit_of_work import get_uow_factory
 
 # Setup logging
 logger = setup_logging()
@@ -94,6 +97,15 @@ async def lifespan(app: FastAPI):
             logger.error("Failed to initialize IAM client", extra={"error": str(e)}, exc_info=True)
             raise
 
+    # Initialize Tools Service
+    if settings.ENABLE_TOOLS:
+        try:
+            uow_factory = get_uow_factory()
+            await initialize_tools_service(uow_factory)
+            logger.info("Tools service initialized successfully")
+        except Exception as e:
+            logger.warning("Tools service initialization failed (non-critical)", extra={"error": str(e)})
+
     # Yield to application after startup
     yield
 
@@ -101,7 +113,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown")
 
     if settings.AUTH_ENABLED:
-        close_iam_client()
+        await close_iam_client()
 
     if settings.ENABLE_RAG:
         close_embedding_client()
@@ -153,6 +165,7 @@ app.include_router(info_router, prefix=settings.route_prefix)
 app.include_router(health_router, prefix=settings.route_prefix)
 app.include_router(chat_router, prefix=settings.route_prefix)
 app.include_router(document_router, prefix=settings.route_prefix)
+app.include_router(tools_router, prefix=settings.route_prefix)
 
 
 # Root endpoint - redirect to documentation
